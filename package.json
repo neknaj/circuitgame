@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "build-ts": "tsc",
+    "build-rust": "wasm-pack build --target web",
+    "copy-rust_js": "ncp ./pkg/tsrust.js ./dist/tsrust.js",
+    "copy-rust_dts": "ncp ./pkg/tsrust.d.ts ./src/tsrust.d.ts",
+    "copy-rust_wasm": "ncp ./pkg/tsrust_bg.wasm ./dist/tsrust_bg.wasm",
+    "copy-rust": "npm run copy-rust_js && npm run copy-rust_wasm",
+    "copy-html": "ncp ./src/index.html ./dist/index.html",
+    "build": "npm install && npm run build-rust && npm run copy-rust_dts && npm run build-ts && npm run copy-rust && npm run copy-html",
+    "server": "http-server ./dist",
+    "clean": "npx rimraf target pkg node_modules",
+    "install-rust": "bash -c \"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh\""
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "http-server": "^14.1.1",
+    "ncp": "^2.0.0",
+    "rimraf": "^6.0.1"
+  }
+}

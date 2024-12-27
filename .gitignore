@@ -1,0 +1,14 @@
+# rust
+/target
+/pkg
+/src/tsrust.d.ts
+
+# ts
+/node_modules
+
+# dist
+/dist
+
+# lock
+/Cargo.lock
+/package-lock.json
