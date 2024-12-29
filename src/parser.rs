@@ -1,8 +1,8 @@
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
-    character::complete::{char, digit1, multispace0, multispace1},
-    combinator::{eof, map, map_res, value},
+    character::complete::{char, digit1, multispace0, multispace1, not_line_ending},
+    combinator::{eof, map, map_res, value, recognize},
     multi::{many0, separated_list0},
     sequence::{delimited, terminated, tuple},
     IResult,
@@ -137,6 +137,42 @@ fn mtype(input: &str) -> IResult<&str, MType> {
     )(input)
 }
 
+
+fn line_comment_start(input: &str) -> IResult<&str, &str> {
+    alt((
+        tag("//"),
+        tag("#"),
+    ))(input)
+}
+
+fn line_comment(input: &str) -> IResult<&str, &str> {
+    recognize(
+        tuple((
+            line_comment_start,
+            not_line_ending,
+            alt((
+                tag("\n"),
+                tag("\r\n"),
+                eof
+            ))
+        ))
+    )(input)
+}
+
+/// コメント有りの区切り
+fn separator(input: &str) -> IResult<&str, ()> {
+    map(
+        many0(
+            alt((
+                map(multispace1, |_| ()),
+                map(line_comment, |_| ())
+            ))
+        ),
+        |_| ()
+    )(input)
+}
+
+/// valueの区切り
 fn value_separator(input: &str) -> IResult<&str, ()> {
     alt((
         map(multispace1, |_| ()),
@@ -234,10 +270,10 @@ fn module(input: &str) -> IResult<&str, Module> {
             right_arrow,
             multispace0,
             io_list,
-            multispace0,
+            separator,
             delimited(
                 char('{'),
-                many0(delimited(multispace0, gate, multispace0)),
+                many0(delimited(separator, gate, separator)),
                 char('}'),
             ),
         )),
@@ -305,10 +341,10 @@ fn test(input: &str) -> IResult<&str, Test> {
             char(':'),
             multispace0,
             mtype,
-            multispace0,
+            separator,
             delimited(
                 char('{'),
-                many0(delimited(multispace0, test_pattern, multispace0)),
+                many0(delimited(separator, test_pattern, separator)),
                 char('}'),
             ),
         )),
@@ -331,16 +367,21 @@ fn component(input: &str) -> IResult<&str, Component> {
 fn file(input: &str) -> IResult<&str, File> {
     map(
         terminated(
-            many0(delimited(multispace0, component, multispace0)),
-            tuple((multispace0, eof)),
+            many0(delimited(separator, component, separator)),
+            tuple((separator, eof)),
         ),
         |components| File { components },
     )(input)
 }
 
+
+pub fn parser(input: &str) -> IResult<&str, File> {
+    file(input)
+}
+
 // Helper function to parse a string into our AST
 pub fn parse(input: &str) -> Result<String, String> {
-    match file(input) {
+    match parser(input) {
         Ok(("", ast)) => Ok(format!("{:?}",ast)),
         Ok((remainder, _)) => Err(format!("Parser did not consume all input. Remaining: {}", remainder)),
         Err(e) => Err(format!("Parser error: {}", e)),

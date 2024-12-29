@@ -3,8 +3,10 @@ import init, { Parse } from './circuitgame.js';
 async function run() {
     await init();
     const input = `
+// Example usage with comments
 using nor:2->1;
 
+// This is a NOT gate module
 module not (x)->(a) {
     a: nor <- x x;
 }
