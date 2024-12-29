@@ -42,8 +42,8 @@ pub struct Gate {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct MType {
-    pub input_count: u32,
-    pub output_count: u32,
+    pub input_count: usize,
+    pub output_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -57,5 +57,3 @@ pub struct ModuleType {
     pub name: String,
     pub mtype: MType,
 }
-
-pub type ModuleList = Vec<ModuleType>;

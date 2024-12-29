@@ -78,8 +78,8 @@ fn mtype(input: &str) -> IResult<&str, MType> {
             number,
         )),
         |(input_count, _, output_count)| MType {
-            input_count,
-            output_count,
+            input_count: input_count as usize,
+            output_count: output_count as usize,
         },
     )(input)
 }
