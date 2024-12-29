@@ -1,4 +1,4 @@
-import init, { Parse } from './tsrust.js';
+import init, { Parse } from './circuitgame.js';
 
 async function run() {
     await init();

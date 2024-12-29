@@ -2,9 +2,9 @@
   "scripts": {
     "build-ts": "tsc",
     "build-rust": "wasm-pack build --target web",
-    "copy-rust_js": "ncp ./pkg/tsrust.js ./dist/tsrust.js",
-    "copy-rust_dts": "ncp ./pkg/tsrust.d.ts ./src/tsrust.d.ts",
-    "copy-rust_wasm": "ncp ./pkg/tsrust_bg.wasm ./dist/tsrust_bg.wasm",
+    "copy-rust_js": "ncp ./pkg/circuitgame.js ./dist/circuitgame.js",
+    "copy-rust_dts": "ncp ./pkg/circuitgame.d.ts ./src/circuitgame.d.ts",
+    "copy-rust_wasm": "ncp ./pkg/circuitgame_bg.wasm ./dist/circuitgame_bg.wasm",
     "copy-rust": "npm run copy-rust_js && npm run copy-rust_wasm",
     "copy-html": "ncp ./src/index.html ./dist/index.html",
     "build": "npm install && npm run build-rust && npm run copy-rust_dts && npm run build-ts && npm run copy-rust && npm run copy-html",
