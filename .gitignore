@@ -12,3 +12,6 @@
 # lock
 /Cargo.lock
 /package-lock.json
+
+# note
+/note

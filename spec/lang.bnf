@@ -1,0 +1,40 @@
+<file> := <components>
+
+<components> := <component> <components> | ε
+<component> := <using> | <module> | <test>
+
+<mName> := /[0-9a-zA-Z]+/
+<mId> := /[0-9a-zA-Z]+/
+<int> := /[0-9]+/
+
+<mType> := <int> <rArrow> <int>
+<mTypeConcrete> := <int> <rArrow> <int>
+<mIds> := <mId> <mIds> | ε
+<mIO> := "(" <mIds> ")"
+
+<rArrow> := ">" | "->" | "=>" | "~>"
+<lArrow> := "<" | "<-" | "<=" | "<~"
+<using_keyword> := "using" | "Using" | "USING" | "use" | "Use" | "USE"
+<module_keyword> := "module" | "Module" | "MODULE" | "def" | "Def" | "DEF"
+<test_keyword> := "test" | "Test" | "TEST"
+<true>  := "t" | "T" | "h" | "H" | "1"
+<false> := "f" | "F" | "l" | "L" | "0"
+
+<using> := <using_keyword> "nor" ":" "2" <rArrow> "1" ";"
+<module> := <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
+<test> := <test_keyword> <mName> ":" <mType> "{" <testPatterns> "}"
+
+<gate> := <mIds> ":" <mName> <lArrow> <mIds> ";"
+<gates> := <gate> <gates> | ε
+
+<bool> := <true> | <false>
+<values> := <bool> <values> | ε
+<testPattern> := <values> <rArrow> <values> ";"
+<testPatterns> := <testPattern> <testPatterns> | ε
+
+
+# 以下は、色んな所に良い感じに入れられるが、BNFが読みにくくなるので、上記の文法からは消し去ってある
+# <Separator>が何処に入れられるか確認したい場合はparser.rsを読め()
+
+<Separator> := " " | "," | "\n" | "\r" # 空白は色んな所に良い感じに入れられます
+<LineComment> := ("//" | "#") /[^\n]/ "\n" # 未対応
