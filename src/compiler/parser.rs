@@ -322,15 +322,10 @@ fn file(input: &str) -> IResult<&str, File> {
 }
 
 
-pub fn parser(input: &str) -> IResult<&str, File> {
-    file(input)
-}
-
-// Helper function to parse a string into our AST
-pub fn parse(input: &str) -> Result<String, String> {
-    match parser(input) {
-        Ok(("", ast)) => Ok(format!("{:?}",ast)),
-        Ok((remainder, _)) => Err(format!("Parser did not consume all input. Remaining: {}", remainder)),
-        Err(e) => Err(format!("Parser error: {}", e)),
+pub fn parser(input: &str) -> Result<File, String> {
+    match file(input) {
+        Ok(("", ast)) => Ok(ast),
+        Ok((remainder, _)) => Err(format!("Remaining: {}", remainder)),
+        Err(e) => Err(format!("{}", e)),
     }
 }

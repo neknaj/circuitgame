@@ -1,7 +1,7 @@
 # rust
 /target
 /pkg
-/src/circuitgame.d.ts
+/src/circuitgame_lib.d.ts
 
 # ts
 /node_modules

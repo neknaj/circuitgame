@@ -1,4 +1,4 @@
-import init, { Parse } from './circuitgame.js';
+import init, { Parse } from './circuitgame_lib.js';
 
 async function run() {
     await init();
