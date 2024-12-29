@@ -189,12 +189,22 @@ fn io_list(input: &str) -> IResult<&str, Vec<String>> {
     )(input)
 }
 
+fn gate_separator(input: &str) -> IResult<&str, &str> {
+    alt((
+        tag(":"),
+        tag("="),
+        tag(":="),
+        tag("::="),
+        left_arrow,
+    ))(input)
+}
+
 fn gate(input: &str) -> IResult<&str, Gate> {
     map(
         tuple((
             id_list,
             multispace0,
-            char(':'),
+            gate_separator,
             multispace0,
             identifier,
             multispace0,

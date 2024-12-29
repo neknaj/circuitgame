@@ -19,12 +19,13 @@
 <test_keyword> := "test" | "Test" | "TEST"
 <true>  := "t" | "T" | "h" | "H" | "1"
 <false> := "f" | "F" | "l" | "L" | "0"
+<gate_separator> := ":" | "=" | ":=" | "::=" | <lArrow>
 
 <using> := <using_keyword> "nor" ":" "2" <rArrow> "1" ";"
 <module> := <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
 <test> := <test_keyword> <mName> ":" <mType> "{" <testPatterns> "}"
 
-<gate> := <mIds> ":" <mName> <lArrow> <mIds> ";"
+<gate> := <mIds> <gate_separator> <mName> <lArrow> <mIds> ";"
 <gates> := <gate> <gates> | ε
 
 <bool> := <true> | <false>
