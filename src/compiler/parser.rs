@@ -1,3 +1,5 @@
+use super::types::*;
+
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -7,61 +9,6 @@ use nom::{
     sequence::{delimited, terminated, tuple},
     IResult,
 };
-use serde::Serialize;
-
-// AST Types with Serialize for JSON conversion
-#[derive(Debug, Clone, Serialize)]
-pub struct File {
-    components: Vec<Component>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type")]
-pub enum Component {
-    Using(Using),
-    Module(Module),
-    Test(Test),
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Using {
-    type_sig: MType,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Module {
-    name: String,
-    inputs: Vec<String>,
-    outputs: Vec<String>,
-    gates: Vec<Gate>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Test {
-    name: String,
-    type_sig: MType,
-    patterns: Vec<TestPattern>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Gate {
-    outputs: Vec<String>,
-    module_name: String,
-    inputs: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct MType {
-    input_count: u32,
-    output_count: u32,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TestPattern {
-    inputs: Vec<bool>,
-    outputs: Vec<bool>,
-}
-
 
 // Parser implementations
 fn identifier(input: &str) -> IResult<&str, String> {
