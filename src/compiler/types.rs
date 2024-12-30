@@ -1,6 +1,13 @@
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ResultwithWarn<T,E> {
+    pub res: Result<T, E>,
+    pub warn: String,
+}
+
+
+#[derive(Debug, Clone, Serialize)]
 pub struct File {
     pub components: Vec<Component>,
 }
@@ -56,4 +63,10 @@ pub struct TestPattern {
 pub struct ModuleType {
     pub name: String,
     pub mtype: MType,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NodeDepends {
+    pub node: String,
+    pub depends: String,
 }
