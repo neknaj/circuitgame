@@ -6,6 +6,8 @@ pub type Warns = Vec<String>;
 pub type Errs = Vec<String>;
 pub type ResultwithWarn<T> = Result<(T,Warns),(Errs,Warns)>;
 
+// パーサー系
+
 #[derive(Debug, Clone, Serialize)]
 pub struct File {
     pub components: Vec<Component>,
@@ -69,6 +71,21 @@ pub struct NodeDepends {
     pub node: String,
     pub depends: String,
 }
+
+// norに展開
+
+// 入力のgateのインデックスを保存
+// 入力がmoduleのinputの場合は、gates.len()+indexにする
+pub type CompiledGate = (u32,u32);
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CompiledModule {
+    pub inputs: u32,
+    pub outputs: Vec<u32>,
+    pub gates: Vec<CompiledGate>,
+}
+
+// compileの返り値
 
 #[derive(Debug, Clone, Serialize)]
 pub struct IntermediateProducts {

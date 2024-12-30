@@ -1,10 +1,11 @@
-pub mod parser;
-pub mod modulecheck;
+mod parser;
+mod modulecheck;
+mod compile;
 mod types;
-
 
 pub fn compile(input: &str) -> types::IntermediateProducts {
     use modulecheck::*;
+    use compile::*;
     let mut products = types::IntermediateProducts { warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new() };
     // 0, パース
     products.ast = match parser::parser(input).map_err(|err| format!("[Parser error]\n{}", err)) {
@@ -31,6 +32,10 @@ pub fn compile(input: &str) -> types::IntermediateProducts {
         Err(res) => {products.errors.extend(res.0);products.warns.extend(res.1);return products;},
     };
     // 6, 依存関係の先端から順にモジュールを展開 (全てのmoduleがnorのみで構成される)
+    match module_expansion(&products.ast, &products.module_dependency_sorted) {
+        Ok(()) => {},
+        Err(msg) => {products.errors.extend(msg);return products;},
+    };
     // 7, 各モジュールの遅延を計算
     // 8, testを実行
     products

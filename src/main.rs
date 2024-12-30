@@ -7,7 +7,6 @@ fn main() {
 // Example usage with comments
 using nor:2->1;
 
-// This is a NOT gate module
 module not (x)->(a) {
     a: nor <- x x;
 }
@@ -36,11 +35,11 @@ module hAddr (x y)->(c s) {
     s: xor <- x y;
 }
 
-module fAdr (x y z)->(c s2) {
-    c1 s1: hAddr <- x y  ;
-    c2 s2: hAddr <- s1 z ;
-    c    : or    <- c1 c2;
-}
+// module fAdr (x y z)->(c s2) {
+//     c1 s1: hAddr <- x y  ;
+//     c2 s2: hAddr <- s1 z ;
+//     c    : or    <- c1 c2;
+// }
 
 test not:1->1 {
     t -> f;
