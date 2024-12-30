@@ -3,7 +3,7 @@ mod modulecheck;
 mod compile;
 mod types;
 
-pub fn compile(input: &str) -> types::IntermediateProducts {
+pub fn intermediate_products(input: &str) -> types::IntermediateProducts {
     use modulecheck::*;
     use compile::*;
     let mut products = types::IntermediateProducts { warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new(), expanded_modules: std::collections::HashMap::new() };

@@ -60,7 +60,7 @@ test and:2->1 {
     f f -> f;
 }
 ";
-    let result = compiler::compile(input);
+    let result = compiler::intermediate_products(input);
     // println!("[result] {:#?}",result);
     println!("[warns] {:#?}",result.warns);
     println!("[errors] {:#?}",result.errors);
