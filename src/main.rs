@@ -60,8 +60,9 @@ test and:2->1 {
     f f -> f;
 }
 ";
-    match compiler::compile(input) {
-        Ok(()) => {},
-        Err(error) => { println!("{}",error); }
-    }
+    let result = compiler::compile(input);
+    // println!("[result] {:#?}",result);
+    println!("[warns] {:#?}",result.warns);
+    println!("[errors] {:#?}",result.errors);
+    println!("[sortedDependency] {:#?}",result.module_dependency_sorted);
 }

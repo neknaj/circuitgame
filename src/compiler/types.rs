@@ -1,11 +1,10 @@
 use serde::Serialize;
 
-#[derive(Debug, Clone, Serialize)]
-pub struct ResultwithWarn<T,E> {
-    pub res: Result<T, E>,
-    pub warn: String,
-}
-
+/// Errのレベル: 一つ目は停止 二つ目は警告
+/// `Ok(( result, warn[] ))` `Err(( error[], warn[] ))`
+pub type Warns = Vec<String>;
+pub type Errs = Vec<String>;
+pub type ResultwithWarn<T> = Result<(T,Warns),(Errs,Warns)>;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct File {
@@ -69,4 +68,14 @@ pub struct ModuleType {
 pub struct NodeDepends {
     pub node: String,
     pub depends: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct IntermediateProducts {
+    pub warns                   : Vec<String>,
+    pub errors                  : Vec<String>,
+    pub ast                     : File,
+    pub module_type_list        : Vec<ModuleType>,
+    pub module_dependency       : Vec<NodeDepends>,
+    pub module_dependency_sorted: Vec<String>,
 }

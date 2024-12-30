@@ -28,7 +28,7 @@ pub fn collect_modules(ast: &File) -> Vec<ModuleType> {
     return modules;
 }
 
-pub fn check_module_name_duplicates(modules: &Vec<ModuleType>) -> Result<(),String> {
+pub fn check_module_name_duplicates(modules: &Vec<ModuleType>) -> Result<(),Vec<String>> {
     let mut module_names = std::collections::HashSet::new();
     let mut errors = Vec::new();
     for module in modules {
@@ -37,10 +37,10 @@ pub fn check_module_name_duplicates(modules: &Vec<ModuleType>) -> Result<(),Stri
         }
     }
     if errors.len()==0 { Ok(()) }
-    else { Err(errors.join("\n")) }
+    else { Err(errors) }
 }
 
-pub fn check_module_gates(ast: &File, modules: &Vec<ModuleType>) -> Result<(),String> {
+pub fn check_module_gates(ast: &File, modules: &Vec<ModuleType>) -> Result<(),Vec<String>> {
     let mut errors: Vec<String> = Vec::new();
     // idの宣言,使用に問題がないかを確認
     for component in &ast.components {
@@ -97,7 +97,7 @@ pub fn check_module_gates(ast: &File, modules: &Vec<ModuleType>) -> Result<(),St
         }
     }
     if errors.len()==0 { Ok(()) }
-    else { Err(errors.join("\n")) }
+    else { Err(errors) }
 }
 
 pub fn module_dependency(ast: &File) -> Vec<NodeDepends> {
@@ -118,7 +118,7 @@ pub fn module_dependency(ast: &File) -> Vec<NodeDepends> {
     dependency
 }
 
-pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleType>) -> ResultwithWarn<Vec<String>, String> {
+pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleType>) -> ResultwithWarn<Vec<String>> {
     use std::collections::{HashMap, HashSet};
     let mut warns: Vec<String> = Vec::new();
     // 依存関係のグラフを作成
@@ -167,17 +167,14 @@ pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleTy
     }
     // 結果リストがモジュール数と一致しない場合、サイクルがある
     if l.len() != modules.len() {
-        return ResultwithWarn {
-            res: Err("Cycle detected in the graph, sorting cannot be completed.".to_string()),
-            warn: warns.join("\n"),
-        };
+        return Err((
+            vec!["Cycle detected in the graph, sorting cannot be completed.".to_string()],
+            warns,
+        ));
     }
     // 結果表示
-    println!("Topological order: {:?}", l);
-    println!("Warnings: {:?}", warns);
-
-    ResultwithWarn {
-        res: Ok(l), // トポロジカルソートの結果
-        warn: warns.join("\n"),
-    }
+    Ok((
+        l,
+        warns,
+    ))
 }
