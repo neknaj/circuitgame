@@ -1,5 +1,6 @@
+#[cfg(not(feature = "web"))]
 mod compiler;
-
+#[cfg(not(feature = "web"))]
 fn main() {
     println!("Hello World");
     let input = "
@@ -65,4 +66,9 @@ test and:2->1 {
     println!("[warns] {:#?}",result.warns);
     println!("[errors] {:#?}",result.errors);
     println!("[sortedDependency] {:#?}",result.module_dependency_sorted);
+}
+
+
+#[cfg(feature = "web")]
+fn main() {
 }

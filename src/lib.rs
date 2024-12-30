@@ -5,11 +5,10 @@ use std::str;
 mod compiler;
 
 #[wasm_bindgen(js_name=Compile)]
-pub fn export_compile(input: &str) -> JsValue {
+pub fn export_compile(input: &str) -> String {
     let result = compiler::compile(input);
-    let string = match serde_json::to_string_pretty(&result) {
+    match serde_json::to_string_pretty(&result) {
         Ok(str) => str,
-        Err(_) => return JsValue::from("serializing error"),
-    };
-    return JsValue::from(string);
+        Err(_) => return format!("serializing error"),
+    }
 }
