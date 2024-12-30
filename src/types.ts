@@ -1,11 +1,11 @@
 export interface MType {
-    inputCount: number;
-    outputCount: number;
+    input_count: number;
+    output_count: number;
 }
 
 export interface Gate {
     outputs: string[];
-    moduleName: string;
+    module_name: string;
     inputs: string[];
 }
 
@@ -17,12 +17,12 @@ export interface Module {
 }
 
 export interface Using {
-    typeSig: MType;
+    type_sig: MType;
 }
 
 export interface Test {
     name: string;
-    typeSig: MType;
+    type_sig: MType;
     patterns: {
         inputs: boolean[];
         outputs: boolean[];
@@ -54,7 +54,7 @@ export interface IntermediateProducts {
     warns: string[];
     errors: string[];
     ast: File;
-    moduleTypeList: ModuleType[];
-    moduleDependency: NodeDepends[];
-    moduleDependencySorted: string[];
+    module_type_list: ModuleType[];
+    module_dependency: NodeDepends[];
+    module_dependency_sorted: string[];
 }

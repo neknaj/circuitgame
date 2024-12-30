@@ -18,11 +18,6 @@ export function isIntermediateProducts(obj: any): obj is IntermediateProducts {
     // astの型チェック
     if (!isFile(obj.ast)) return false;
 
-    // 型変換して返す
-    obj.moduleTypeList = obj.module_type_list;
-    obj.moduleDependency = obj.module_dependency;
-    obj.moduleDependencySorted = obj.module_dependency_sorted;
-
     return true;
 }
 
