@@ -1,32 +1,30 @@
-use modulecheck::sort_dependency;
-use types::{File, IntermediateProducts};
-
 pub mod parser;
 pub mod modulecheck;
 mod types;
 
 
-pub fn compile(input: &str) -> IntermediateProducts {
-    let mut products = IntermediateProducts { warns: Vec::new(), errors: Vec::new(), ast: File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new() };
+pub fn compile(input: &str) -> types::IntermediateProducts {
+    use modulecheck::*;
+    let mut products = types::IntermediateProducts { warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new() };
     // 0, パース
     products.ast = match parser::parser(input).map_err(|err| format!("[Parser error]\n{}", err)) {
         Ok(ast) => ast,
         Err(msg) => {products.errors.push(msg);return products;},
     };
     // 1, モジュール定義の一覧を作成
-    products.module_type_list = modulecheck::collect_modules(&products.ast);
+    products.module_type_list = collect_modules(&products.ast);
     // 2, モジュールの名前に重複がないかを確認
-    match modulecheck::check_module_name_duplicates(&products.module_type_list) {
+    match check_module_name_duplicates(&products.module_type_list) {
         Ok(()) => {},
         Err(msg) => {products.errors.extend(msg);return products;},
     };
     // 3, モジュールのゲートの使い方に問題がないかを確認
-    match  modulecheck::check_module_gates(&products.ast,&products.module_type_list) {
+    match  check_module_gates(&products.ast,&products.module_type_list) {
         Ok(()) => {},
         Err(msg) => {products.errors.extend(msg);return products;},
     };
     // 4, モジュールの依存関係を作成
-    products.module_dependency = modulecheck::module_dependency(&products.ast);
+    products.module_dependency = module_dependency(&products.ast);
     // 5, トポロジカルソート (循環がないかを確認)
     products.module_dependency_sorted = match sort_dependency(&products.module_dependency,&products.module_type_list) {
         Ok(res) => {products.warns.extend(res.1);res.0},
