@@ -4,12 +4,12 @@ use super::types::*;
 
 /// 全てのモジュールをnorのみで表す
 /// modules: 依存関係によりトポロジカルソートされたモジュール名一覧
-pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<String>> {
+pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<String,CompiledModule>,Vec<String>> {
     let mut errors = Vec::new();
-    let mut expanded_modules: HashMap<String,CompiledModule> = std::collections::HashMap::new();
+    let mut expanded_modules: HashMap<String,CompiledModule> = std::collections::HashMap::new(); // 全てのゲートがnorだけで構成されているmodule
 
     for module_name in modules.iter().rev().skip(1) {
-        println!("{:#?}",module_name);
+        // println!("{:#?}",module_name);
         match ast.components.iter().find_map( |component| { // ASTの中からmodule_nameを見つける
                 if let Component::Module(ref module) = component {
                     if &module.name == module_name { return Some(module.clone()); }
@@ -18,7 +18,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<Strin
             }
         ) {
             Some(module) => {
-                println!("found module {:?}",module);
+                // println!("found module {:?}",module);
                 // 展開したモジュールに付ける名前は #id.0の形にする
                 // idは展開する毎にインクリメント, 数値は展開するCompiledModuleのインデックス
                 let mut expansion_id = 0;
@@ -46,8 +46,8 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<Strin
                     else { // norでなかったら展開する
                         match expanded_modules.get(&gate.module_name) {
                             Some(v) => {
-                                println!("not the nor gate {:#?}",&gate.module_name);
-                                println!("{:#?}",&gate);
+                                // println!("not the nor gate {:#?}",&gate.module_name);
+                                // println!("{:#?}",&gate);
                                 let mut gate_index = 0;
                                 // gateを追加
                                 for gate in &v.gates {
@@ -56,7 +56,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<Strin
                                     gate_index+=1;
                                 }
                                 // inputを処理
-                                println!("v inputs  {:?}",&v.inputs);
+                                // println!("v inputs  {:?}",&v.inputs);
                                 for i in 0..v.inputs {
                                     let name = match gate.inputs.get(i as usize) {
                                         Some(v) => v.clone(),
@@ -65,11 +65,11 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<Strin
                                     gates_rename.insert(format!("#{}.{}",expansion_id,v.gates.len() as u32+i), name);
                                 }
                                 // outputを処理
-                                println!("v outputs {:?}",&v.outputs);
+                                // println!("v outputs {:?}",&v.outputs);
                                 let mut output_index = 0;
                                 for i in v.outputs.clone() {
-                                    println!("{}",i);
-                                    println!("{:#?}",gate.outputs);
+                                    // println!("{}",i);
+                                    // println!("{:#?}",gate.outputs);
                                     let name = match gate.outputs.get(output_index as usize) {
                                         Some(v) => v.clone(),
                                         None => {errors.push(format!("gate has invalid output {}",i));"".to_string()},
@@ -77,9 +77,12 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<Strin
                                     gates_rename.insert(name,format!("#{}.{}",expansion_id,i));
                                     output_index+=1;
                                 }
+                                for gate in gate.outputs.clone() {
+                                    gates_name.insert(gate, tmp_gates.len() as u32+output_index);
+                                }
                                 expansion_id+=1;
                             },
-                            None => {errors.push(format!("undefined gate used"));},
+                            None => {errors.push(format!("undefined gate used"));}, // 依存関係によってトポロジカルソートされているので、見つからないことは無い筈
                         };
                     }
                 }
@@ -127,23 +130,23 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<(),Vec<Strin
                     };
                     outputs.push(out);
                 }
-                println!("GatesName {:?}",gates_name);
-                println!("GatesRName{:?}",gates_rename);
-                println!("TMP Gates {:?}",tmp_gates);
-                println!("Gates     {:?}",gates);
-                println!("Outputs   {:?}",outputs);
+                // println!("GatesName {:?}",gates_name);
+                // println!("GatesRName{:?}",gates_rename);
+                // println!("TMP Gates {:?}",tmp_gates);
+                // println!("Gates     {:?}",gates);
+                // println!("Outputs   {:?}",outputs);
                 // expanded_modulesに保存
                 expanded_modules.insert(module_name.clone(), CompiledModule {
                     inputs: module.inputs.len() as u32,
                     outputs: outputs,
                     gates
                 });
-                println!("{:#?}",expanded_modules);
+                // println!("{:#?}",expanded_modules);
             },
             None => { errors.push(format!("Undefined module used: {}",module_name)); },
         }
     }
 
-    if errors.len()==0 { Ok(()) }
+    if errors.len()==0 { Ok(expanded_modules) }
     else { Err(errors) }
 }

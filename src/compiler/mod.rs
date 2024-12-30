@@ -33,7 +33,7 @@ pub fn compile(input: &str) -> types::IntermediateProducts {
     };
     // 6, 依存関係の先端から順にモジュールを展開 (全てのmoduleがnorのみで構成される)
     match module_expansion(&products.ast, &products.module_dependency_sorted) {
-        Ok(()) => {},
+        Ok(v) => {},
         Err(msg) => {products.errors.extend(msg);return products;},
     };
     // 7, 各モジュールの遅延を計算

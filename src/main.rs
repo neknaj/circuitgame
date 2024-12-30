@@ -35,11 +35,11 @@ module hAddr (x y)->(c s) {
     s: xor <- x y;
 }
 
-// module fAdr (x y z)->(c s2) {
-//     c1 s1: hAddr <- x y  ;
-//     c2 s2: hAddr <- s1 z ;
-//     c    : or    <- c1 c2;
-// }
+module fAdr (x y z)->(c s2) {
+    c1 s1: hAddr <- x y  ;
+    c2 s2: hAddr <- s1 z ;
+    c    : or    <- c1 c2;
+}
 
 test not:1->1 {
     t -> f;
