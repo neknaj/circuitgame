@@ -95,4 +95,5 @@ pub struct IntermediateProducts {
     pub module_type_list        : Vec<ModuleType>,
     pub module_dependency       : Vec<NodeDepends>,
     pub module_dependency_sorted: Vec<String>,
+    pub expanded_modules        : std::collections::HashMap<String,CompiledModule>,
 }
