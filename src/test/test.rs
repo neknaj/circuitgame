@@ -64,6 +64,9 @@ pub fn test_gates(
                     }
                     //
                     // println!("test accepted: {}",!test_failed);
+                    if test_failed {
+                        errors.push(format!("Test failed: module {} input {:?}, expected {:?} but got {:?}",&test.name,pattern.inputs.clone(),pattern.outputs.clone(),output.clone()));
+                    }
                     let test_pattern = TestPattern {
                         input : pattern.inputs.clone(),
                         expect: pattern.outputs.clone(),
