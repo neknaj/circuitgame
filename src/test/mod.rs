@@ -19,6 +19,6 @@ pub fn test(products: crate::compiler::types::IntermediateProducts) -> types::Te
         Ok(res) => {test_products.warns.extend(res.1);res.0},
         Err(res) => {test_products.errors.extend(res.0);test_products.warns.extend(res.1);return test_products;},
     };
-    println!("{:#?}",test_products);
+    // println!("{:#?}",test_products);
     test_products
 }

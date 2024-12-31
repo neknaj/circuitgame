@@ -5,101 +5,97 @@ mod test;
 #[cfg(not(feature = "web"))]
 mod vm;
 #[cfg(not(feature = "web"))]
-fn main() -> Result<(),()> {
-    println!("Hello World");
-    let input = "
-// Example usage with comments
-using nor:2->1;
+use clap::Parser;
 
-module not (x)->(a) {
-    a: nor <- x x;
+// コマンドライン引数
+#[derive(Parser, Debug)]
+struct Opt {
+    /// Input file
+    #[arg(short = 'i', long = "input", value_name = "Input File Path")]
+    input: Option<String>,
+    #[arg(short = 'o', long = "output", value_name = "Output NCGb to File")]
+    output: Option<String>,
 }
 
-module or (x y)->(b) {
-    a: nor <- x y;
-    b: not <- a  ;
-}
+#[cfg(not(feature = "web"))]
+fn main() {
+    println!("Neknaj Circuit Game");
+    // 引数を処理
+    let opt = Opt::parse();
+    let input_path = match opt.input {
+        Some(v) => v,
+        None => {
+            println!("No input path specified in command line arguments");
+            return;
+        },
+    };
+    let output_path = opt.output;
+    // inputを読み込み
+    let input = match std::fs::read_to_string(input_path) {
+        Ok(v) => v,
+        Err(e) => {
+            match e.kind() {
+                std::io::ErrorKind::NotFound => println!("File not found"),
+                std::io::ErrorKind::PermissionDenied => println!("Permission denied"),
+                _ => println!("Other error occurred: {}", e),
+            };
+            return;
+        }
+    };
 
-module and (x y)->(c) {
-    a: not <- x  ;
-    b: not <- y  ;
-    c: nor <- a b;
-}
-
-module xor (x y)->(e) {
-    a: not <- x  ;
-    b: not <- y  ;
-    c: nor <- a b;
-    d: nor <- x y;
-    e: nor <- c d;
-}
-
-module hAddr (x y)->(c s) {
-    c: and <- x y;
-    s: xor <- x y;
-}
-
-module fAdr (x y z)->(c s2) {
-    c1 s1: hAddr <- x y  ;
-    c2 s2: hAddr <- s1 z ;
-    c    : or    <- c1 c2;
-}
-
-test not:1->1 {
-    t -> f;
-    f -> t;
-}
-
-test or:2->1 {
-    t t -> t;
-    t f -> t;
-    f t -> t;
-    f f -> f;
-}
-
-test and:2->1 {
-    t t -> t;
-    t f -> f;
-    f t -> f;
-    f f -> f;
-}
-";
-    let result = compiler::intermediate_products(input);
+    // inputを処理
+    let result = compiler::intermediate_products(&input);
     // println!("[result] {:#?}",result);
     println!("[warns] {:#?}",&result.warns);
     println!("[errors] {:#?}",&result.errors);
     println!("[sortedDependency] {:#?}",&result.module_dependency_sorted);
-    if result.errors.len()>0 {
-        return Err(());
-    }
+    if result.errors.len()>0 {return;}
     let module = match result.module_dependency_sorted.get(0) {
         Some(v) => v.clone(),
-        None => {return Err(());}
+        None => {return;}
     };
     let binary = match compiler::serialize(result.clone(), module.as_str()) {
         Ok(v)=>v,
         Err(v)=>{
             println!("[error] {:#?}",v);
-            return Err(());
+            return;
         }
     };
-    println!("{:?}",binary);
     let test_result = test::test(result);
     println!("[test warns] {:#?}",&test_result.warns);
     println!("[test errors] {:#?}",&test_result.errors);
-    let _ = vm::init(binary);
-    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::set_input(0, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::set_input(1, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::set_input(2, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
-    match vm::get_output() {Ok(v)=>{println!("{:#?}",v);},Err(v)=>{println!("[error] {:#?}",v);}};
-    return Ok(());
+    // コンパイル結果をoutput
+    match output_path {
+        Some(v)=> {
+            if let Err(e) = write_binary_file(v.as_str(), binary) {
+                eprintln!("[error]:output {}", e);
+            } else {
+                println!("Output completed");
+            }
+        },
+        None => {
+            println!("[info] No output path specified in command line arguments");
+            println!("{:?}",binary);
+        }
+    }
+    return;
 }
 
+#[cfg(not(feature = "web"))]
+fn write_binary_file(filename: &str, data: Vec<u32>) -> std::io::Result<()> {use std::fs::File;
+    use byteorder::{LittleEndian, WriteBytesExt};
+    // ファイルの作成
+    let mut file = File::create(filename)
+        .map_err(|e| std::io::Error::new(e.kind(), format!("ファイル作成に失敗しました: {}", e)))?;
+
+    // データの書き込み
+    for &value in &data {
+        file.write_u32::<LittleEndian>(value)
+            .map_err(|e| std::io::Error::new(e.kind(), format!("データ書き込みに失敗しました: {}", e)))?;
+    }
+
+    Ok(())
+}
 
 #[cfg(feature = "web")]
 fn main() {

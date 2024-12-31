@@ -155,7 +155,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
 pub fn serialize_to_vec(module: CompiledModule) -> Vec<u32> {
     let mut result = Vec::new();
     // Add magic number
-    result.push(0x4e434762);
+    result.push(0x6247434e);
     // Add data size
     result.push(32); // 32bits (u32)
     // Serialize inputs

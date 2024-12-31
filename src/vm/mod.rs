@@ -59,10 +59,10 @@ pub fn get_output() -> Result<Vec<bool>,String> {
 }
 
 /// 全てのgatesを取得する input付き
-pub fn get_gates_all() -> Vec<bool> {
-    let gates = GATES.lock().unwrap();
-    gates.clone()
-}
+// pub fn get_gates_all() -> Vec<bool> {
+//     let gates = GATES.lock().unwrap();
+//     gates.clone()
+// }
 
 /// gatesを一周更新する
 pub fn next() -> Result<(), String> {

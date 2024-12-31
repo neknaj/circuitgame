@@ -4,7 +4,7 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     let mut index = 0;
 
     // Check magic number
-    if data.len() < 2 || data[index] != 0x4e434762 {
+    if data.len() < 2 || data[index] != 0x6247434e {
         return Err("Invalid magic number".to_string());
     }
     index += 1;
