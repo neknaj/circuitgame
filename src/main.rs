@@ -1,6 +1,8 @@
 #[cfg(not(feature = "web"))]
 mod compiler;
 #[cfg(not(feature = "web"))]
+mod vm;
+#[cfg(not(feature = "web"))]
 fn main() -> Result<(),()> {
     println!("Hello World");
     let input = "
@@ -80,6 +82,16 @@ test and:2->1 {
         }
     };
     println!("{:?}",binary);
+    let _ = vm::init(binary);
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::set_input(0, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::set_input(1, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::set_input(2, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::get_output() {Ok(v)=>{println!("{:#?}",v);},Err(v)=>{println!("[error] {:#?}",v);}};
     return Ok(());
 }
 
