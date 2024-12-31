@@ -29,12 +29,10 @@ export interface Test {
     }[];
 }
 
-export interface Component {
-    type: "Using" | "Module" | "Test";
-    Using?: Using;
-    Module?: Module;
-    Test?: Test;
-}
+export type Component =
+    | { type: "Using" } & Using
+    | { type: "Module" } & Module
+    | { type: "Test" } & Test;
 
 export interface File {
     components: Component[];
