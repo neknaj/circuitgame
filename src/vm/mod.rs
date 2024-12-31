@@ -23,9 +23,9 @@ pub fn init(data: Vec<u32>) -> Result<(), String> {
     gates.resize(module.gates.len()+module.inputs as usize, false);
     gates.fill(false);
 
-    println!("[INPUTS]  {:?}",module.inputs);
-    println!("[OUTPUTS] {:?}",module.outputs);
-    println!("[GATES]   {:?}",module.gates);
+    // println!("[INPUTS]  {:?}",module.inputs);
+    // println!("[OUTPUTS] {:?}",module.outputs);
+    // println!("[GATES]   {:?}",module.gates);
 
     Ok(())
 }
@@ -69,7 +69,7 @@ pub fn next() -> Result<(), String> {
     let module = MODULE.lock().unwrap();
     let mut gates = GATES.lock().unwrap();
 
-    println!("{:?}",gates.clone().into_iter().map(|b| if b { "1" } else { "0" }).collect::<Vec<_>>().join(""));
+    // println!("{:?}",gates.clone().into_iter().map(|b| if b { "1" } else { "0" }).collect::<Vec<_>>().join(""));
 
     let mut gate_index = 0;
     for gate in &module.gates {

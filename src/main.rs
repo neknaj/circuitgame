@@ -84,7 +84,9 @@ test and:2->1 {
         }
     };
     println!("{:?}",binary);
-    test::test_intermediate_products(result);
+    let test_result = test::test_intermediate_products(result);
+    println!("[test warns] {:#?}",&test_result.warns);
+    println!("[test errors] {:#?}",&test_result.errors);
     let _ = vm::init(binary);
     match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
     match vm::set_input(0, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
