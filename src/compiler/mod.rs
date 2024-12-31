@@ -1,7 +1,27 @@
+use compile::serialize_to_vec;
+use types::IntermediateProducts;
+
 mod parser;
 mod modulecheck;
 mod compile;
 mod types;
+
+#[cfg(feature = "web")]
+pub fn compile(input: &str,module: &str) -> Result<Vec<u32>,String> {
+    serialize(intermediate_products(input), module)
+}
+
+pub fn serialize(products: IntermediateProducts,module: &str) -> Result<Vec<u32>,String> {
+    if products.errors.len()>0 {
+        return Err(products.errors.join("\n"));
+    }
+    let expanded_module = match products.expanded_modules.get(module) {
+        Some(v) => v.clone(),
+        None => {return Err(format!("An undefined module was specified: {}",module));}
+    };
+    let serialized = serialize_to_vec(expanded_module);
+    Ok(serialized)
+}
 
 pub fn intermediate_products(input: &str) -> types::IntermediateProducts {
     use modulecheck::*;

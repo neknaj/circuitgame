@@ -150,3 +150,24 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
     if errors.len()==0 { Ok(expanded_modules) }
     else { Err(errors) }
 }
+
+
+pub fn serialize_to_vec(module: CompiledModule) -> Vec<u32> {
+    let mut result = Vec::new();
+    // Add magic number
+    result.push(0x4e434762);
+    // Add data size
+    result.push(32); // 32bits (u32)
+    // Serialize inputs
+    result.push(module.inputs);
+    // Serialize outputs
+    result.push(module.outputs.len() as u32);
+    result.extend(&module.outputs);
+    // Serialize gates
+    result.push(module.gates.len() as u32);
+    for gate in &module.gates {
+        result.push(gate.0);
+        result.push(gate.1);
+    }
+    result
+}

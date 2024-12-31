@@ -1,7 +1,7 @@
 #[cfg(not(feature = "web"))]
 mod compiler;
 #[cfg(not(feature = "web"))]
-fn main() {
+fn main() -> Result<(),()> {
     println!("Hello World");
     let input = "
 // Example usage with comments
@@ -62,9 +62,25 @@ test and:2->1 {
 ";
     let result = compiler::intermediate_products(input);
     // println!("[result] {:#?}",result);
-    println!("[warns] {:#?}",result.warns);
-    println!("[errors] {:#?}",result.errors);
-    println!("[sortedDependency] {:#?}",result.module_dependency_sorted);
+    println!("[warns] {:#?}",&result.warns);
+    println!("[errors] {:#?}",&result.errors);
+    println!("[sortedDependency] {:#?}",&result.module_dependency_sorted);
+    if result.errors.len()>0 {
+        return Err(());
+    }
+    let module = match result.module_dependency_sorted.get(0) {
+        Some(v) => v.clone(),
+        None => {return Err(());}
+    };
+    let binary = match compiler::serialize(result, module.as_str()) {
+        Ok(v)=>v,
+        Err(v)=>{
+            println!("[error] {:#?}",v);
+            return Err(());
+        }
+    };
+    println!("{:?}",binary);
+    return Ok(());
 }
 
 
