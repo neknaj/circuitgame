@@ -1,9 +1,9 @@
-import init, { Compile } from './circuitgame_lib.js';
+import init, { Compile, CompilerIntermediateProducts } from './circuitgame_lib.js';
 import { isIntermediateProducts } from './typeGuards.js';
 import { IntermediateProducts } from './types.js';
 
 function CompileAsTypescriptResult(code: string): IntermediateProducts {
-    let result_from_rust: any = JSON.parse(Compile(code));
+    let result_from_rust: any = JSON.parse(CompilerIntermediateProducts(code));
     // 型チェックと変換を行う
     if (!isIntermediateProducts(result_from_rust)) {
         throw new Error('Rustからの返り値が期待する形式と一致しません');
@@ -76,11 +76,8 @@ test and:2->1 {
         console.log("< Input >")
         const result = CompileAsTypescriptResult(input);
         console.log(result);
-    }
-    {
-        console.log("< Input without Space >")
-        const result = CompileAsTypescriptResult(input_without_space);
-        console.log(result);
+        console.log(result.module_dependency_sorted[0]);
+        console.log(Compile(input,result.module_dependency_sorted[0]));
     }
 }
 

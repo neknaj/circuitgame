@@ -1,12 +1,16 @@
+#[cfg(not(feature = "web"))]
 mod compiler;
-
-fn main() {
+#[cfg(not(feature = "web"))]
+mod test;
+#[cfg(not(feature = "web"))]
+mod vm;
+#[cfg(not(feature = "web"))]
+fn main() -> Result<(),()> {
     println!("Hello World");
     let input = "
 // Example usage with comments
 using nor:2->1;
 
-// This is a NOT gate module
 module not (x)->(a) {
     a: nor <- x x;
 }
@@ -60,9 +64,41 @@ test and:2->1 {
     f f -> f;
 }
 ";
-    let result = compiler::compile(input);
+    let result = compiler::intermediate_products(input);
     // println!("[result] {:#?}",result);
-    println!("[warns] {:#?}",result.warns);
-    println!("[errors] {:#?}",result.errors);
-    println!("[sortedDependency] {:#?}",result.module_dependency_sorted);
+    println!("[warns] {:#?}",&result.warns);
+    println!("[errors] {:#?}",&result.errors);
+    println!("[sortedDependency] {:#?}",&result.module_dependency_sorted);
+    if result.errors.len()>0 {
+        return Err(());
+    }
+    let module = match result.module_dependency_sorted.get(0) {
+        Some(v) => v.clone(),
+        None => {return Err(());}
+    };
+    let binary = match compiler::serialize(result.clone(), module.as_str()) {
+        Ok(v)=>v,
+        Err(v)=>{
+            println!("[error] {:#?}",v);
+            return Err(());
+        }
+    };
+    println!("{:?}",binary);
+    test::test_intermediate_products(result);
+    let _ = vm::init(binary);
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::set_input(0, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::set_input(1, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::set_input(2, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
+    match vm::get_output() {Ok(v)=>{println!("{:#?}",v);},Err(v)=>{println!("[error] {:#?}",v);}};
+    return Ok(());
+}
+
+
+#[cfg(feature = "web")]
+fn main() {
 }
