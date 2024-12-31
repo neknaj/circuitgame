@@ -7,7 +7,8 @@
     "copy-rust_wasm": "npx wasm-opt -Oz ./pkg/circuitgame_lib_bg.wasm -o ./dist/circuitgame_lib_bg.wasm",
     "copy-rust": "npm run copy-rust_js && npm run copy-rust_wasm",
     "copy-html": "ncp ./src/index.html ./dist/index.html",
-    "build": "npm install && npm run build-rust && npm run copy-rust_dts && npm run build-ts && npm run copy-rust && npm run copy-html",
+    "copy-sample": "ncp ./spec/sample.ncg ./dist/sample.ncg",
+    "build": "npm install && npm run build-rust && npm run copy-rust_dts && npm run build-ts && npm run copy-rust && npm run copy-html && npm run copy-sample",
     "server": "http-server ./dist",
     "clean": "npx rimraf target pkg node_modules",
     "install-rust": "bash -c \"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh\""
