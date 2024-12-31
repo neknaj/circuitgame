@@ -12,6 +12,7 @@ lazy_static = "1.4"
 clap_derive = { version = "4.5.4" }
 clap = { version = "4.5.4", features = ["derive"] }
 byteorder = "1.4"
+colored = "2.0"
 
 [[bin]]
 name = "circuitgame_bin"
