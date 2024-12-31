@@ -1,6 +1,8 @@
 #[cfg(not(feature = "web"))]
 mod compiler;
 #[cfg(not(feature = "web"))]
+mod test;
+#[cfg(not(feature = "web"))]
 mod vm;
 #[cfg(not(feature = "web"))]
 fn main() -> Result<(),()> {
@@ -74,7 +76,7 @@ test and:2->1 {
         Some(v) => v.clone(),
         None => {return Err(());}
     };
-    let binary = match compiler::serialize(result, module.as_str()) {
+    let binary = match compiler::serialize(result.clone(), module.as_str()) {
         Ok(v)=>v,
         Err(v)=>{
             println!("[error] {:#?}",v);
@@ -82,6 +84,7 @@ test and:2->1 {
         }
     };
     println!("{:?}",binary);
+    test::test_intermediate_products(result);
     let _ = vm::init(binary);
     match vm::next() {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};
     match vm::set_input(0, true) {Ok(())=>{},Err(v)=>{println!("[error] {:#?}",v);}};

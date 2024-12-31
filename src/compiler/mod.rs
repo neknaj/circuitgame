@@ -4,7 +4,7 @@ use types::IntermediateProducts;
 mod parser;
 mod modulecheck;
 mod compile;
-mod types;
+pub mod types;
 
 #[cfg(feature = "web")]
 pub fn compile(input: &str,module: &str) -> Result<Vec<u32>,String> {
