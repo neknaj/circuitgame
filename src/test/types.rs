@@ -17,7 +17,7 @@ pub struct TestPattern {
 
 
 #[derive(Debug, Clone, Serialize)]
-pub struct IntermediateProducts {
+pub struct TestProducts {
     pub warns      : Vec<String>,
     pub errors     : Vec<String>,
     pub test_list  : Vec<String>,

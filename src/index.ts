@@ -1,4 +1,4 @@
-import init, { Compile, CompilerIntermediateProducts } from './circuitgame_lib.js';
+import init, { Compile, CompilerIntermediateProducts, Test } from './circuitgame_lib.js';
 import { isIntermediateProducts } from './typeGuards.js';
 import { IntermediateProducts } from './types.js';
 
@@ -77,6 +77,12 @@ test and:2->1 {
         const result = CompileAsTypescriptResult(input);
         console.log(result);
         console.log(result.module_dependency_sorted[0]);
+        const test_result = JSON.parse(Test(input));
+        console.log(test_result);
+        for (let name of Object.keys(test_result.test_result)) {
+            console.log(`test: ${name}`);
+            console.table(test_result.test_result[name]);
+        }
         console.log(Compile(input,result.module_dependency_sorted[0]));
     }
 }

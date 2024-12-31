@@ -84,7 +84,7 @@ test and:2->1 {
         }
     };
     println!("{:?}",binary);
-    let test_result = test::test_intermediate_products(result);
+    let test_result = test::test(result);
     println!("[test warns] {:#?}",&test_result.warns);
     println!("[test errors] {:#?}",&test_result.errors);
     let _ = vm::init(binary);

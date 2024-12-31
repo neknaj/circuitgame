@@ -2,8 +2,8 @@ mod testcheck;
 mod test;
 mod types;
 
-pub fn test_intermediate_products(products: crate::compiler::types::IntermediateProducts) -> types::IntermediateProducts {
-    let mut test_products = types::IntermediateProducts { warns: Vec::new(), errors: Vec::new(), test_list: Vec::new(), test_result: std::collections::HashMap::new() };
+pub fn test(products: crate::compiler::types::IntermediateProducts) -> types::TestProducts {
+    let mut test_products = types::TestProducts { warns: Vec::new(), errors: Vec::new(), test_list: Vec::new(), test_result: std::collections::HashMap::new() };
     use testcheck::*;
     // 1, テスト定義の一覧を作成
     test_products.test_list = collect_tests(&products.ast);

@@ -1,5 +1,3 @@
-use super::types::*;
-
 pub fn collect_tests(ast: &crate::compiler::types::File) -> Vec<String> {
     use crate::compiler::types::*;
     let mut tests = Vec::new();
