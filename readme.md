@@ -1,43 +1,72 @@
-# Rust+TypeScript Webアプリ テンプレート
+# Circuit Game
+
 ![image](https://img.shields.io/badge/-TypeScript-103040.svg?logo=typescript&style=popout)
 ![image](https://img.shields.io/badge/-Rust-403540.svg?logo=rust&style=popout)
 
+Circuit Game is a simulation tool for designing and testing digital circuits. It allows users to define modules, gates, and tests for their circuits and provides tools for compiling and testing these designs.
 
-このプロジェクトは、Rust と TypeScript を使用して WebAssembly (Wasm) を利用した Web アプリケーションを構築するためのテンプレートです。  
+## Installation
 
-## 始め方
+To install the project, follow these steps:
 
-このテンプレートを使用するための手順は以下の通りです。  
+1. Clone the repository:
+    ```sh
+    git clone https://github.com/neknaj/circuitgame.git
+    cd circuitgame
+    ```
 
-### 必要な環境
+2. Install dependencies:
+    ```sh
+    npm install
+    ```
 
-- Node.js (>=14.0.0)  
-- Rust (>=1.60.0)  
-    - `wasm-pack` (Rust コードを WebAssembly にビルドするためのツール)  
+3. Build the project:
+    ```sh
+    npm run build
+    ```
 
-(Linuxの場合は、このリポジトリで$`npm run install-rust`を実行すればRustとwasm-packがインストールできます)  
+## Usage
 
-### 開発
+### Command Line Interface
 
-1. このリポジトリをクローンします  
+The project includes a command-line interface for compiling and testing circuits. Use the following command to see the available options:
+```sh
+cargo run -- --help
+```
 
-2. buildします  
-    $`npm run build`を実行すれば、`/dist`に必要なファイルが作成されます  
+### Web Interface
 
-3. ローカルのサーバーで動かします  
-    `/dist`をルートにしてサーバーを起動してください  
-    $`npm run server`を実行すれば、http-serverを使ってローカルサーバーを起動できます  
-    表示されるURLをWebブラウザで開いて下さい  
+To use the web interface, open `index.html` in your browser.  
+Currently, you can only view the output in the Developer Tools console.
 
-4. ファイルを編集します  
-    `/src`内のファイルを編集して、Webアプリの機能を作成してください  
-    編集したら`2`~`3`を再度行ってください  
+## Notation
 
-5. アプリを公開します  
-    - Github Pages  
-        `.github\workflows\deploy.yml`に、Github Actionsを使って公開するための設定があります  
-        Githubにcommitすると、`gh-pages`ブランチが作られ、`/dist`の中身がその中に入ります  
-        Githubリポジトリの`Settings > Pages`からGithub Pagesの設定を行ってください  
-    - その他  
-        GithubPagesと同様、`/dist`の中身をWebサーバーに配置すれば行えます  
+The circuit notation grammar is defined using a BNF-like syntax.  
 
+For a detailed BNF grammar, refer to the `lang.bnf` file in the `spec` directory.  
+For the actual implementation, see the `parser.rs` file in the `src/compiler` directory.
+
+### Sample Code
+
+For more examples, see the `sample.ncg` file in the `spec` directory.
+```ncg
+using nor:2->1;
+
+// This is a NOT gate module
+module not (x)->(a) {
+    a: nor <- x x;
+}
+// Providing tests for the not module
+test not:1->1 {
+    t -> f;
+    f -> t;
+}
+```
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request on GitHub.
+
+## License
+
+This project is licensed under the MIT License.
