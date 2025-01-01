@@ -52,9 +52,15 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
         index += 2;
     }
 
+    // init cond
+    let mut cond = Vec::new();
+    cond.resize(gates.len()+inputs as usize, false);
+
     Ok(Module {
         inputs,
         outputs,
         gates,
+        cond,
+        tick: 0,
     })
 }

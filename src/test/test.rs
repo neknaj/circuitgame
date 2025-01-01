@@ -1,5 +1,4 @@
 use super::types::*;
-use crate::vm;
 
 pub fn test_gates(
     product: &crate::compiler::types::IntermediateProducts,
@@ -30,22 +29,23 @@ pub fn test_gates(
                     Ok(v)=>v,
                     Err(v)=>{ errors.push(v);break; }
                 };
-                let _ = vm::init(binary);
+                let mut vm = match crate::vm::types::Module::new(binary) {
+                    Ok(v) => v,
+                    Err(v)=>{ errors.push(v);break; }
+                };
                 let mut test_result = Vec::new();
                 // それぞれのpatternを試す
                 for pattern in &test.patterns {
                     // 入力を設定する
                     let mut input_index = 0;
                     for input in &pattern.inputs {
-                        let _ = vm::set_input(input_index, *input);
+                        let _ = vm.set(input_index, *input);
                         input_index+=1;
                     }
                     // vmを数ステップ進める <- todo: 指定できるようにする
-                    for _ in 0..1000 {
-                        let _ = vm::next();
-                    }
+                    let _ = vm.next(1000);
                     // 出力を取得する
-                    let output = match vm::get_output() {
+                    let output = match vm.get_output() {
                         Ok(v) => v,
                         Err(v)=>{ errors.push(v);break; }
                     };
