@@ -2,6 +2,7 @@
 /target
 /pkg
 /src/web/circuitgame_lib.d.ts
+/src/web/circuitgame_lib.js
 
 # ts
 /node_modules

@@ -1,10 +1,10 @@
 {
   "scripts": {
-    "build-ts": "tsc",
+    "build-ts": "node build.js",
     "build-rust": "wasm-pack build --target web --features web",
-    "copy-rust_js": "ncp ./pkg/circuitgame_lib.js ./dist/circuitgame_lib.js",
+    "copy-rust_js": "ncp ./pkg/circuitgame_lib.js ./src/web/circuitgame_lib.js",
     "copy-rust_dts": "ncp ./pkg/circuitgame_lib.d.ts ./src/web/circuitgame_lib.d.ts",
-    "copy-rust_wasm": "npx wasm-opt -Oz ./pkg/circuitgame_lib_bg.wasm -o ./dist/circuitgame_lib_bg.wasm",
+    "copy-rust_wasm": "npx wasm-opt -O ./pkg/circuitgame_lib_bg.wasm -o ./dist/circuitgame_lib_bg.wasm",
     "copy-rust": "npm run copy-rust_js && npm run copy-rust_dts && npm run copy-rust_wasm",
     "copy-assets": "npm run copy-html && npm run copy-sample",
     "copy-html": "ncp ./src/web/index.html ./dist/index.html",
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "binaryen": "^121.0.0",
+    "esbuild": "^0.24.2",
     "http-server": "^14.1.1",
     "mkdirp": "^3.0.1",
     "ncp": "^2.0.0",
