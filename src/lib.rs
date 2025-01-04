@@ -109,19 +109,19 @@ pub fn export_VMgetOutput(resource_id: u32,index: u32,value: bool) -> Vec<u32> {
         None=> Vec::new()
     }
 }
-// #[wasm_bindgen(js_name=VMgetGates)]
-// pub fn export_VMgetGates(resource_id: u32,index: u32,value: bool) -> Vec<u32> {
-//     let mut vmres = match VM_resource.lock() {
-//         Ok(v)=>v,
-//         Err(_)=> return Vec::new()
-//     };
-//     match vmres.get_resource(resource_id) {
-//         Some(module)=> {
-//             module.get_gates().into_iter().map(|b| if b { 1 } else { 0 }).collect();
-//         },
-//         None=> return Vec::new()
-//     }
-// }
+#[wasm_bindgen(js_name=VMgetGates)]
+pub fn export_VMgetGates(resource_id: u32,index: u32,value: bool) -> Vec<u32> {
+    let mut vmres = match VM_resource.lock() {
+        Ok(v)=>v,
+        Err(_)=> return Vec::new()
+    };
+    match vmres.get_resource(resource_id) {
+        Some(module)=> {
+            module.get_gates().into_iter().map(|b| if b { 1 } else { 0 }).collect()
+        },
+        None=> return Vec::new()
+    }
+}
 #[wasm_bindgen(js_name=VMnext)]
 pub fn export_VMnext(resource_id: u32,n: u32) -> Result<u32,String> {
     let mut vmres = match VM_resource.lock() {
