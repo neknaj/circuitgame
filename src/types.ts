@@ -56,3 +56,21 @@ export interface IntermediateProducts {
     module_dependency: NodeDepends[];
     module_dependency_sorted: string[];
 }
+
+export type TestPattern = {
+    accept: Boolean;
+    input: Boolean[];
+    expect: Boolean[];
+    output: Boolean[];
+}
+
+export type TestPatternMap = {
+    [key: string]: TestPattern[];
+}
+
+export type TestProducts = {
+    warns: string[];
+    errors: string[];
+    test_list: string[];
+    test_result: TestPatternMap
+}

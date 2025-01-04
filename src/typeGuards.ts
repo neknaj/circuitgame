@@ -1,4 +1,4 @@
-import { Component, File, Gate, IntermediateProducts, Module, ModuleType, MType, NodeDepends, Test, Using } from './types';
+import { Component, File, Gate, IntermediateProducts, Module, ModuleType, MType, NodeDepends, Test, TestProducts, Using } from './types';
 
 export function isIntermediateProducts(obj: any): obj is IntermediateProducts {
     if (!obj || typeof obj !== 'object') return false;
@@ -92,4 +92,34 @@ export function isTest(obj: any): obj is Test {
             Array.isArray(p.outputs) &&
             p.outputs.every(o => typeof o === 'boolean')
         );
-} 
+}
+
+export function isTestProducts(obj: any): obj is TestProducts {
+    if (!obj || typeof obj !== 'object') return false;
+
+    // 必須プロパティの存在チェック
+    if (!('warns' in obj && 'errors' in obj && 'test_list' in obj && 'test_result' in obj)) return false;
+
+    // 配列プロパティの型チェック
+    if (!Array.isArray(obj.warns) || !obj.warns.every(w => typeof w === 'string')) return false;
+    if (!Array.isArray(obj.errors) || !obj.errors.every(e => typeof e === 'string')) return false;
+    if (!Array.isArray(obj.test_list) || !obj.test_list.every(t => typeof t === 'string')) return false;
+
+    // test_resultの型チェック
+    if (typeof obj.test_result !== 'object') return false;
+
+    // test_resultの各要素（TestPattern[]）をチェック
+    return Object.values(obj.test_result).every(patterns => {
+        if (!Array.isArray(patterns)) return false;
+        return patterns.every(pattern =>
+            typeof pattern === 'object' &&
+            typeof pattern.accept === 'boolean' &&
+            Array.isArray(pattern.input) &&
+            pattern.input.every(i => typeof i === 'boolean') &&
+            Array.isArray(pattern.expect) &&
+            pattern.expect.every(e => typeof e === 'boolean') &&
+            Array.isArray(pattern.output) &&
+            pattern.output.every(o => typeof o === 'boolean')
+        );
+    });
+}  
