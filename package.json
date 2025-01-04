@@ -1,16 +1,6 @@
 {
   "scripts": {
-    "build-ts": "node build.js",
-    "build-rust": "wasm-pack build --target web --features web",
-    "copy-rust_js": "ncp ./pkg/circuitgame_lib.js ./src/web/circuitgame_lib.js",
-    "copy-rust_dts": "ncp ./pkg/circuitgame_lib.d.ts ./src/web/circuitgame_lib.d.ts",
-    "copy-rust_wasm": "npx wasm-opt -O ./pkg/circuitgame_lib_bg.wasm -o ./dist/circuitgame_lib_bg.wasm",
-    "copy-rust": "npm run copy-rust_js && npm run copy-rust_dts && npm run copy-rust_wasm",
-    "copy-assets": "npm run copy-html && npm run copy-sample",
-    "copy-html": "ncp ./src/web/index.html ./dist/index.html",
-    "copy-sample": "ncp ./spec/sample.ncg ./dist/sample.ncg",
-    "get-cdomjs": "curl -o src/web/cdom.ts https://raw.githubusercontent.com/neknaj/cDom/8d6fa798db021d3ce7e4e4a4c3073f5fb2e71237/cdom_module.ts",
-    "build": "npm install && mkdirp dist && npm run build-rust && npm run copy-rust && npm run get-cdomjs && npm run build-ts && npm run copy-assets",
+    "build": "node build.js",
     "server": "http-server ./dist",
     "clean": "npx rimraf target pkg node_modules",
     "install-rust": "bash -c \"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh\""
