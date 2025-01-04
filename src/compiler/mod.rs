@@ -26,7 +26,7 @@ pub fn serialize(products: IntermediateProducts,module: &str) -> Result<Vec<u32>
 pub fn intermediate_products(input: &str) -> types::IntermediateProducts {
     use modulecheck::*;
     use compile::*;
-    let mut products = types::IntermediateProducts { warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new(), expanded_modules: std::collections::HashMap::new() };
+    let mut products = types::IntermediateProducts { source: input.to_string() ,warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new(), expanded_modules: std::collections::HashMap::new() };
     // 0, パース
     products.ast = match parser::parser(input).map_err(|err| format!("[Parser error]\n{}", err)) {
         Ok(ast) => ast,

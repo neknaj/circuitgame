@@ -49,6 +49,7 @@ export interface NodeDepends {
 }
 
 export interface IntermediateProducts {
+    source: string;
     warns: string[];
     errors: string[];
     ast: File;

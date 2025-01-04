@@ -89,6 +89,7 @@ pub struct CompiledModule {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct IntermediateProducts {
+    pub source                  : String,
     pub warns                   : Vec<String>,
     pub errors                  : Vec<String>,
     pub ast                     : File,

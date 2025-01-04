@@ -35,7 +35,7 @@ async function run() {
             console.log(`test: ${name}`);
             console.table(test_result.test_result[name]);
         }
-        console.log(Compile(input, result.module_dependency_sorted[0]));
+        console.log(Compile(result.source, result.module_dependency_sorted[0]));
     }
 }
 

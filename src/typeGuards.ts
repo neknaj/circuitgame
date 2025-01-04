@@ -4,7 +4,7 @@ export function isIntermediateProducts(obj: any): obj is IntermediateProducts {
     if (!obj || typeof obj !== 'object') return false;
 
     // 必須プロパティの存在チェック（snake_caseに対応）
-    if (!('warns' in obj && 'errors' in obj && 'ast' in obj &&
+    if (!('source' in obj && 'warns' in obj && 'errors' in obj && 'ast' in obj &&
         'module_type_list' in obj && 'module_dependency' in obj &&
         'module_dependency_sorted' in obj)) return false;
 
