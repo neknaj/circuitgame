@@ -1,22 +1,5 @@
-import init, { Compile, CompilerIntermediateProducts, Test } from './circuitgame_lib.js';
-import { isIntermediateProducts, isTestProducts } from './typeGuards.js';
-import { IntermediateProducts, TestProducts } from './types.js';
+import init, { Compile, CompilerIntermediateProducts, Test } from './circuitgame.js';
 
-function CompileAsTypescriptResult(code: string): IntermediateProducts {
-    let result_from_rust: any = JSON.parse(CompilerIntermediateProducts(code));
-    // 型チェックと変換を行う
-    if (!isIntermediateProducts(result_from_rust)) {
-        throw new Error('Rustからの返り値が期待する形式と一致しません');
-    }
-    return result_from_rust;
-}
-function TestAsTypescriptResult(input: string): TestProducts {
-    let result_from_rust: any = JSON.parse(Test(input));
-    if (!isTestProducts(result_from_rust)) {
-        throw new Error('Rustからの返り値が期待する形式と一致しません');
-    }
-    return result_from_rust
-}
 
 async function fetchTextFile(url: string): Promise<string> {
     try {
@@ -42,10 +25,10 @@ async function run() {
     const input = await fetchTextFile("./sample.ncg");
     {
         console.log("< Input >")
-        const result = CompileAsTypescriptResult(input);
+        const result = CompilerIntermediateProducts(input);
         console.log(result);
         console.log(result.module_dependency_sorted[0]);
-        const test_result = TestAsTypescriptResult(input);
+        const test_result = Test(input);
         console.log(test_result);
         for (let name of Object.keys(test_result.test_result)) {
             console.log(`test: ${name}`);
