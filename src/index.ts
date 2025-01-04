@@ -83,6 +83,7 @@ test and:2->1 {
 }
 
 run();
+
 function createCircuitVisualizer(modules: Module[], container: HTMLElement) {
     const GATE_WIDTH = 60;
     const GATE_HEIGHT = 40;
@@ -97,346 +98,375 @@ function createCircuitVisualizer(modules: Module[], container: HTMLElement) {
     const width = START_X * 2 + GATE_SPACING * (maxGates + 1);
     const height = START_Y * 2 + VERTICAL_SPACING * (maxInputs - 1);
 
-    // SVG要素の作成
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", width.toString());
-    svg.setAttribute("height", height.toString());
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    // カードのコンテナを作成
+    const cardContainer = document.createElement('div');
+    cardContainer.style.margin = '20px';
+    cardContainer.style.padding = '20px';
+    cardContainer.style.border = '1px solid #e2e8f0';
+    cardContainer.style.borderRadius = '8px';
+    cardContainer.style.backgroundColor = 'white';
 
-    // 接続線のパスを生成する関数
-    function getConnectionPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
-        const midX = (from.x + to.x) / 2;
-        return `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
-    }
+    // タイトルを追加
+    const title = document.createElement('h2');
+    title.style.marginBottom = '16px';
+    title.style.fontSize = '1.5rem';
+    title.style.fontWeight = 'bold';
+    title.textContent = 'Circuit Diagrams';
+    cardContainer.appendChild(title);
 
-    // ドラッグ状態を管理
-    let isDragging = false;
-    let selectedElement: SVGElement | null = null;
-    let offset = { x: 0, y: 0 };
-    let connections: SVGPathElement[] = [];
+    // 各モジュールを個別のカードで表示
+    modules.forEach(module => createModuleCard(module));
+    function createModuleCard(module) {
+        const moduleCard = document.createElement('div');
+        moduleCard.style.marginBottom = '20px';
+        moduleCard.style.padding = '16px';
+        moduleCard.style.border = '1px solid #e2e8f0';
+        moduleCard.style.borderRadius = '4px';
 
-    // マウスイベントのハンドラを修正
-    function startDrag(evt: MouseEvent, element: SVGElement) {
-        isDragging = true;
-        selectedElement = element;
+        // モジュール名を追加
+        const moduleName = document.createElement('h3');
+        moduleName.style.marginBottom = '12px';
+        moduleName.style.fontSize = '1.2rem';
+        moduleName.style.fontWeight = 'bold';
+        moduleName.textContent = `Module: ${module.name}`;
+        moduleCard.appendChild(moduleName);
 
-        // SVGの座標系でのオフセットを計算
-        const svgPoint = svg.createSVGPoint();
-        const CTM = svg.getScreenCTM();
-        if (!CTM) return;
+        // SVGコンテナ
+        const svgContainer = document.createElement('div');
+        svgContainer.style.overflow = 'auto';
 
-        svgPoint.x = evt.clientX;
-        svgPoint.y = evt.clientY;
-        const transformedPoint = svgPoint.matrixTransform(CTM.inverse());
+        // SVG要素の作成
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", width.toString());
+        svg.setAttribute("height", height.toString());
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-        // 現在の要素の位置を取得
-        const transform = element.closest('g')?.getAttribute('transform');
-        const currentTranslate = transform ? transform.match(/translate\(([^,]+),([^)]+)\)/) : null;
-        const currentX = currentTranslate ? parseFloat(currentTranslate[1]) : 0;
-        const currentY = currentTranslate ? parseFloat(currentTranslate[2]) : 0;
+        let moduleConnections: SVGPathElement[] = []; // モジュールごとの配列
 
-        offset = {
-            x: transformedPoint.x - currentX,
-            y: transformedPoint.y - currentY
-        };
-    }
-
-    function drag(evt: MouseEvent) {
-        if (!isDragging || !selectedElement) return;
-
-        evt.preventDefault();
-        const svgPoint = svg.createSVGPoint();
-        const CTM = svg.getScreenCTM();
-        if (!CTM) return;
-
-        svgPoint.x = evt.clientX;
-        svgPoint.y = evt.clientY;
-        const transformedPoint = svgPoint.matrixTransform(CTM.inverse());
-
-        moveElement(selectedElement,
-            transformedPoint.x - offset.x,
-            transformedPoint.y - offset.y
-        );
-        updateConnections();
-    }
-
-    function endDrag() {
-        isDragging = false;
-        selectedElement = null;
-    }
-
-    // マウス座標をSVG座標系に変換
-    function getMousePosition(evt: MouseEvent) {
-        const CTM = svg.getScreenCTM();
-        if (!CTM) return { x: 0, y: 0 };
-        return {
-            x: (evt.clientX - CTM.e) / CTM.a,
-            y: (evt.clientY - CTM.f) / CTM.d
-        };
-    }
-
-    // 要素の移動関数を修正
-    function moveElement(element: SVGElement, x: number, y: number) {
-        const g = element.closest('g');
-        if (!g) return;
-
-        // ゲート全体を移動（補正値を削除）
-        g.setAttribute('transform', `translate(${x},${y})`);
-    }
-
-    // 配線の接続点を計算する関数を修正
-    function calculateConnectionPoints(
-        fromElement: Element,
-        toElement: Element,
-        isInput: boolean
-    ): { from: { x: number; y: number }, to: { x: number; y: number } } {
-        const svgPoint = svg.createSVGPoint();
-        const fromBox = fromElement.getBoundingClientRect();
-        const toBox = toElement.getBoundingClientRect();
-        const CTM = svg.getScreenCTM();
-
-        if (!CTM) return { from: { x: 0, y: 0 }, to: { x: 0, y: 0 } };
-
-        // ブラウザ座標をSVG座標に変換
-        function clientToSVGPoint(x: number, y: number) {
-            svgPoint.x = x;
-            svgPoint.y = y;
-            return svgPoint.matrixTransform(CTM.inverse());
+        // 接続線のパスを生成する関数
+        function getConnectionPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
+            const midX = (from.x + to.x) / 2;
+            return `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
         }
 
-        // 接続点の座標を計算
-        const fromPoint = clientToSVGPoint(
-            isInput ? fromBox.x : fromBox.x + fromBox.width,
-            fromBox.y + fromBox.height / 2
-        );
-        const toPoint = clientToSVGPoint(
-            isInput ? toBox.x : toBox.x + toBox.width,
-            toBox.y + toBox.height / 2
-        );
+        // ドラッグ状態を管理
+        let isDragging = false;
+        let selectedElement: SVGElement | null = null;
+        let offset = { x: 0, y: 0 };
 
-        return {
-            from: { x: fromPoint.x, y: fromPoint.y },
-            to: { x: toPoint.x, y: toPoint.y }
-        };
-    }
+        // マウスイベントのハンドラを修正
+        function startDrag(evt: MouseEvent, element: SVGElement) {
+            isDragging = true;
+            selectedElement = element;
 
-    // 配線の更新関数を修正
-    function updateConnections() {
-        connections.forEach(path => {
-            const fromElement = document.getElementById(path.dataset.from || '');
-            const toElement = document.getElementById(path.dataset.to || '');
-            if (!fromElement || !toElement) return;
+            // SVGの座標系でのオフセットを計算
+            const svgPoint = svg.createSVGPoint();
+            const CTM = svg.getScreenCTM();
+            if (!CTM) return;
 
-            const isInput = path.dataset.from?.startsWith('input-') || false;
-            const points = calculateConnectionPoints(fromElement, toElement, isInput);
-            path.setAttribute('d', getConnectionPath(points.from, points.to));
-        });
-    }
+            svgPoint.x = evt.clientX;
+            svgPoint.y = evt.clientY;
+            const transformedPoint = svgPoint.matrixTransform(CTM.inverse());
 
-    // ゲートの描画関数を修正
-    function renderGate(pos: { x: number; y: number }, name: string, id: string, gate: Gate): SVGGElement {
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.setAttribute('id', `gate-${id}`);
-        g.setAttribute('transform', `translate(${pos.x},${pos.y})`);
+            // 現在の要素の位置を取得
+            const transform = element.closest('g')?.getAttribute('transform');
+            const currentTranslate = transform ? transform.match(/translate\(([^,]+),([^)]+)\)/) : null;
+            const currentX = currentTranslate ? parseFloat(currentTranslate[1]) : 0;
+            const currentY = currentTranslate ? parseFloat(currentTranslate[2]) : 0;
 
-        // ゲートの本体
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("x", (-GATE_WIDTH / 2).toString());
-        rect.setAttribute("y", (-GATE_HEIGHT / 2).toString());
-        rect.setAttribute("width", GATE_WIDTH.toString());
-        rect.setAttribute("height", GATE_HEIGHT.toString());
-        rect.setAttribute("fill", "#e1f5fe");
-        rect.setAttribute("stroke", "#333");
-        rect.setAttribute("stroke-width", "1");
-        rect.setAttribute("rx", "4");
-        rect.setAttribute("cursor", "move");
-
-        // 入力ポートの描画（左側）
-        gate.inputs.forEach((_, index) => {
-            const portSpacing = GATE_HEIGHT / (gate.inputs.length + 1);
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("id", `gate-${id}-input-${index}`);
-            circle.setAttribute("cx", (-GATE_WIDTH / 2).toString());
-            circle.setAttribute("cy", (-GATE_HEIGHT / 2 + portSpacing * (index + 1)).toString());
-            circle.setAttribute("r", "3");
-            circle.setAttribute("fill", "#4ade80");
-            g.appendChild(circle);
-        });
-
-        // 出力ポートの描画（右側）
-        gate.outputs.forEach((_, index) => {
-            const portSpacing = GATE_HEIGHT / (gate.outputs.length + 1);
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("id", `gate-${id}-output-${index}`);
-            circle.setAttribute("cx", (GATE_WIDTH / 2).toString());
-            circle.setAttribute("cy", (-GATE_HEIGHT / 2 + portSpacing * (index + 1)).toString());
-            circle.setAttribute("r", "3");
-            circle.setAttribute("fill", "#f43f5e");
-            g.appendChild(circle);
-        });
-
-        // ドラッグイベントの追加
-        rect.addEventListener('mousedown', (evt) => startDrag(evt, g));
-
-        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        text.setAttribute("text-anchor", "middle");
-        text.setAttribute("dominant-baseline", "middle");
-        text.textContent = name;
-
-        g.appendChild(rect);
-        g.appendChild(text);
-        return g;
-    }
-
-    // SVGのイベントリスナーを追加
-    svg.addEventListener('mousemove', drag);
-    svg.addEventListener('mouseup', endDrag);
-    svg.addEventListener('mouseleave', endDrag);
-
-    // 配線作成関数を修正
-    function createConnection(from: string, to: string, path: SVGPathElement) {
-        path.dataset.from = from;
-        path.dataset.to = to;
-        path.setAttribute("stroke", "#666");
-        path.setAttribute("stroke-width", "2");
-        path.setAttribute("fill", "none");
-        connections.push(path);
-
-        const fromElement = document.getElementById(from);
-        const toElement = document.getElementById(to);
-        if (fromElement && toElement) {
-            const isInput = from.startsWith('input-');
-            const points = calculateConnectionPoints(fromElement, toElement, isInput);
-            path.setAttribute('d', getConnectionPath(points.from, points.to));
+            offset = {
+                x: transformedPoint.x - currentX,
+                y: transformedPoint.y - currentY
+            };
         }
 
-        svg.appendChild(path);
-    }
+        function drag(evt: MouseEvent) {
+            if (!isDragging || !selectedElement) return;
 
-    // モジュールの描画関数
-    function renderModule(module: Module) {
-        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            evt.preventDefault();
+            const svgPoint = svg.createSVGPoint();
+            const CTM = svg.getScreenCTM();
+            if (!CTM) return;
 
-        // 入力ポートの配置を計算
-        const inputPositions = module.inputs.map((_, i) => ({
-            x: START_X,
-            y: START_Y + i * VERTICAL_SPACING
-        }));
+            svgPoint.x = evt.clientX;
+            svgPoint.y = evt.clientY;
+            const transformedPoint = svgPoint.matrixTransform(CTM.inverse());
 
-        // ゲートの配置を計算（レベルごとに整理）
-        const gatePositions = module.gates.map((_, i) => ({
-            x: START_X + GATE_SPACING * (i + 1),
-            y: START_Y + (VERTICAL_SPACING * i) / 2
-        }));
+            moveElement(selectedElement,
+                transformedPoint.x - offset.x,
+                transformedPoint.y - offset.y
+            );
+            updateConnections();
+        }
 
-        // 出力ポートの配置を計算
-        const outputPositions = module.outputs.map((_, i) => ({
-            x: START_X + GATE_SPACING * (module.gates.length + 1),
-            y: START_Y + i * VERTICAL_SPACING
-        }));
+        function endDrag() {
+            isDragging = false;
+            selectedElement = null;
+        }
 
-        // 入力ポートの描画
-        inputPositions.forEach((pos, i) => {
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("id", `input-${module.inputs[i]}`);
-            circle.setAttribute("cx", pos.x.toString());
-            circle.setAttribute("cy", pos.y.toString());
-            circle.setAttribute("r", "4");
-            circle.setAttribute("fill", "#4ade80");
+        // 要素の移動関数を修正
+        function moveElement(element: SVGElement, x: number, y: number) {
+            const g = element.closest('g');
+            if (!g) return;
 
-            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute("x", (pos.x - 20).toString());
-            text.setAttribute("y", pos.y.toString());
-            text.setAttribute("dominant-baseline", "middle");
-            text.textContent = module.inputs[i];
+            // ゲート全体を移動（補正値を削除）
+            g.setAttribute('transform', `translate(${x},${y})`);
+        }
 
-            g.appendChild(circle);
-            g.appendChild(text);
-        });
+        // 配線の接続点を計算する関数を修正
+        function calculateConnectionPoints(
+            fromElement: Element,
+            toElement: Element,
+            isInput: boolean
+        ): { from: { x: number; y: number }, to: { x: number; y: number } } {
+            const svgPoint = svg.createSVGPoint();
+            const fromBox = fromElement.getBoundingClientRect();
+            const toBox = toElement.getBoundingClientRect();
+            const CTM = svg.getScreenCTM();
 
-        // ゲートの描画
-        module.gates.forEach((gate, i) => {
-            const gateElement = renderGate(gatePositions[i], gate.module_name, `${gate.module_name}-${i}`, gate);
-            g.appendChild(gateElement);
+            if (!CTM) return { from: { x: 0, y: 0 }, to: { x: 0, y: 0 } };
 
-            // 配線の描画
-            const connections = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            connections.setAttribute("stroke", "#666");
-            connections.setAttribute("stroke-width", "2");
-            connections.setAttribute("fill", "none");
+            // ブラウザ座標をSVG座標に変換
+            function clientToSVGPoint(x: number, y: number) {
+                svgPoint.x = x;
+                svgPoint.y = y;
+                return svgPoint.matrixTransform(CTM.inverse());
+            }
 
-            // 入力への配線
-            gate.inputs.forEach((input, inputIndex) => {
-                const inputPos = inputPositions[module.inputs.indexOf(input)];
-                const sourceGate = module.gates.find(g => g.outputs.includes(input));
-                if (inputPos) {
-                    // モジュール入力からの配線
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    createConnection(
-                        `input-${input}`,
-                        `gate-${gate.module_name}-${i}-input-${inputIndex}`,
-                        path
-                    );
-                } else if (sourceGate) {
-                    // 他のゲートからの配線
-                    const sourceIndex = module.gates.indexOf(sourceGate);
-                    const outputIndex = sourceGate.outputs.indexOf(input);
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    createConnection(
-                        `gate-${sourceGate.module_name}-${sourceIndex}-output-${outputIndex}`,
-                        `gate-${gate.module_name}-${i}-input-${inputIndex}`,
-                        path
-                    );
-                }
+            // 接続点の座標を計算
+            const fromPoint = clientToSVGPoint(
+                isInput ? fromBox.x : fromBox.x + fromBox.width,
+                fromBox.y + fromBox.height / 2
+            );
+            const toPoint = clientToSVGPoint(
+                isInput ? toBox.x : toBox.x + toBox.width,
+                toBox.y + toBox.height / 2
+            );
+
+            return {
+                from: { x: fromPoint.x, y: fromPoint.y },
+                to: { x: toPoint.x, y: toPoint.y }
+            };
+        }
+
+        // 配線の更新関数を修正
+        function updateConnections() {
+            moduleConnections.forEach(path => {
+                const fromElement = document.getElementById(path.dataset.from || '');
+                const toElement = document.getElementById(path.dataset.to || '');
+                if (!fromElement || !toElement) return;
+
+                const isInput = path.dataset.from?.startsWith('input-') || false;
+                const points = calculateConnectionPoints(fromElement, toElement, isInput);
+                path.setAttribute('d', getConnectionPath(points.from, points.to));
+            });
+        }
+
+        // ゲートの描画関数を修正
+        function renderGate(pos: { x: number; y: number }, name: string, id: string, gate: Gate): SVGGElement {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute('id', `gate-${id}`);
+            g.setAttribute('transform', `translate(${pos.x},${pos.y})`);
+
+            // ゲートの本体
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", (-GATE_WIDTH / 2).toString());
+            rect.setAttribute("y", (-GATE_HEIGHT / 2).toString());
+            rect.setAttribute("width", GATE_WIDTH.toString());
+            rect.setAttribute("height", GATE_HEIGHT.toString());
+            rect.setAttribute("fill", "#e1f5fe");
+            rect.setAttribute("stroke", "#333");
+            rect.setAttribute("stroke-width", "1");
+            rect.setAttribute("rx", "4");
+            rect.setAttribute("cursor", "move");
+
+            // 入力ポートの描画（左側）
+            gate.inputs.forEach((_, index) => {
+                const portSpacing = GATE_HEIGHT / (gate.inputs.length + 1);
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("id", `gate-${id}-input-${index}`);
+                circle.setAttribute("cx", (-GATE_WIDTH / 2).toString());
+                circle.setAttribute("cy", (-GATE_HEIGHT / 2 + portSpacing * (index + 1)).toString());
+                circle.setAttribute("r", "3");
+                circle.setAttribute("fill", "#4ade80");
+                g.appendChild(circle);
             });
 
-            // 出力ポートへの配線
-            gate.outputs.forEach((output, outputIndex) => {
-                const outputPos = outputPositions[module.outputs.indexOf(output)];
-                if (outputPos) {
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    createConnection(
-                        `gate-${gate.module_name}-${i}-output-${outputIndex}`,
-                        `output-${output}`,
-                        path
-                    );
-                }
+            // 出力ポートの描画（右側）
+            gate.outputs.forEach((_, index) => {
+                const portSpacing = GATE_HEIGHT / (gate.outputs.length + 1);
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("id", `gate-${id}-output-${index}`);
+                circle.setAttribute("cx", (GATE_WIDTH / 2).toString());
+                circle.setAttribute("cy", (-GATE_HEIGHT / 2 + portSpacing * (index + 1)).toString());
+                circle.setAttribute("r", "3");
+                circle.setAttribute("fill", "#f43f5e");
+                g.appendChild(circle);
             });
 
-            g.appendChild(connections);
-        });
-
-        // 出力ポートの描画
-        outputPositions.forEach((pos, i) => {
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            circle.setAttribute("id", `output-${module.outputs[i]}`);
-            circle.setAttribute("cx", pos.x.toString());
-            circle.setAttribute("cy", pos.y.toString());
-            circle.setAttribute("r", "4");
-            circle.setAttribute("fill", "#f43f5e");
+            // ドラッグイベントの追加
+            rect.addEventListener('mousedown', (evt) => startDrag(evt, g));
 
             const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute("x", (pos.x + 20).toString());
-            text.setAttribute("y", pos.y.toString());
+            text.setAttribute("text-anchor", "middle");
             text.setAttribute("dominant-baseline", "middle");
-            text.textContent = module.outputs[i];
+            text.textContent = name;
 
-            g.appendChild(circle);
+            g.appendChild(rect);
             g.appendChild(text);
-        });
+            return g;
+        }
 
-        return g;
-    }
+        // SVGのイベントリスナーを追加
+        svg.addEventListener('mousemove', drag);
+        svg.addEventListener('mouseup', endDrag);
+        svg.addEventListener('mouseleave', endDrag);
 
-    // モジュールの描画
-    modules.forEach(module => {
+        // 配線作成関数を修正
+        function createConnection(from: string, to: string, path: SVGPathElement) {
+            path.dataset.from = from;
+            path.dataset.to = to;
+            path.setAttribute("stroke", "#666");
+            path.setAttribute("stroke-width", "2");
+            path.setAttribute("fill", "none");
+            moduleConnections.push(path); // グローバルのconnectionsではなくmoduleConnectionsを使用
+
+            const fromElement = document.getElementById(from);
+            const toElement = document.getElementById(to);
+            if (fromElement && toElement) {
+                const isInput = from.startsWith('input-');
+                const points = calculateConnectionPoints(fromElement, toElement, isInput);
+                path.setAttribute('d', getConnectionPath(points.from, points.to));
+            }
+
+            svg.appendChild(path);
+        }
+
+        // モジュールの描画関数
+        function renderModule(module: Module) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+            // 入力ポートの配置を計算
+            const inputPositions = module.inputs.map((_, i) => ({
+                x: START_X,
+                y: START_Y + i * VERTICAL_SPACING
+            }));
+
+            // ゲートの配置を計算（レベルごとに整理）
+            const gatePositions = module.gates.map((_, i) => ({
+                x: START_X + GATE_SPACING * (i + 1),
+                y: START_Y + Math.floor(i / 2) * VERTICAL_SPACING
+            }));
+
+            // 出力ポートの配置を計算
+            const outputPositions = module.outputs.map((_, i) => ({
+                x: START_X + GATE_SPACING * (module.gates.length + 1),
+                y: START_Y + i * VERTICAL_SPACING
+            }));
+
+            // 入力ポートの描画
+            inputPositions.forEach((pos, i) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("id", `input-${module.inputs[i]}`);
+                circle.setAttribute("cx", pos.x.toString());
+                circle.setAttribute("cy", pos.y.toString());
+                circle.setAttribute("r", "4");
+                circle.setAttribute("fill", "#4ade80");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", (pos.x - 20).toString());
+                text.setAttribute("y", pos.y.toString());
+                text.setAttribute("dominant-baseline", "middle");
+                text.textContent = module.inputs[i];
+
+                g.appendChild(circle);
+                g.appendChild(text);
+            });
+
+            // ゲートの描画
+            module.gates.forEach((gate, i) => {
+                const gateElement = renderGate(gatePositions[i], gate.module_name, `${gate.module_name}-${i}`, gate);
+                g.appendChild(gateElement);
+
+                // 配線の描画
+                const connections = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                connections.setAttribute("stroke", "#666");
+                connections.setAttribute("stroke-width", "2");
+                connections.setAttribute("fill", "none");
+
+                // 入力への配線
+                gate.inputs.forEach((input, inputIndex) => {
+                    const inputPos = inputPositions[module.inputs.indexOf(input)];
+                    const sourceGate = module.gates.find(g => g.outputs.includes(input));
+                    if (inputPos) {
+                        // モジュール入力からの配線
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        createConnection(
+                            `input-${input}`,
+                            `gate-${gate.module_name}-${i}-input-${inputIndex}`,
+                            path
+                        );
+                    } else if (sourceGate) {
+                        // 他のゲートからの配線
+                        const sourceIndex = module.gates.indexOf(sourceGate);
+                        const outputIndex = sourceGate.outputs.indexOf(input);
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        createConnection(
+                            `gate-${sourceGate.module_name}-${sourceIndex}-output-${outputIndex}`,
+                            `gate-${gate.module_name}-${i}-input-${inputIndex}`,
+                            path
+                        );
+                    }
+                });
+
+                // 出力ポートへの配線
+                gate.outputs.forEach((output, outputIndex) => {
+                    const outputPos = outputPositions[module.outputs.indexOf(output)];
+                    if (outputPos) {
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        createConnection(
+                            `gate-${gate.module_name}-${i}-output-${outputIndex}`,
+                            `output-${output}`,
+                            path
+                        );
+                    }
+                });
+
+                g.appendChild(connections);
+            });
+
+            // 出力ポートの描画
+            outputPositions.forEach((pos, i) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("id", `output-${module.outputs[i]}`);
+                circle.setAttribute("cx", pos.x.toString());
+                circle.setAttribute("cy", pos.y.toString());
+                circle.setAttribute("r", "4");
+                circle.setAttribute("fill", "#f43f5e");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", (pos.x + 20).toString());
+                text.setAttribute("y", pos.y.toString());
+                text.setAttribute("dominant-baseline", "middle");
+                text.textContent = module.outputs[i];
+
+                g.appendChild(circle);
+                g.appendChild(text);
+            });
+
+            return g;
+        }
+
+        // モジュールの描画
         const moduleElement = renderModule(module);
         svg.appendChild(moduleElement);
-    });
-
-    // コンテナに追加
-    container.appendChild(svg);
-    updateConnections();
+        svgContainer.appendChild(svg);
+        moduleCard.appendChild(svgContainer);
+        cardContainer.appendChild(moduleCard);
+        // コンテナに追加
+        container.appendChild(moduleCard);
+        updateConnections();
+    };
 }
 
 // 使用例
