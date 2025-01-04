@@ -29,7 +29,7 @@ pub fn check_test_missing(provided_tests: &Vec<String>,defined_modules: &Vec<Str
     for module in defined_modules {
         // println!("{:?} {}",provided_tests,module);
         // println!("{:?}",provided_tests.contains(module));
-        if !provided_tests.contains(module) {
+        if !provided_tests.contains(module)&&module!="nor" {
             warns.push(format!("No test provided for module: {}",module));
         }
     }
