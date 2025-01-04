@@ -12,5 +12,5 @@
             "*": ["pkg/*"]
         }
     },
-    "include": ["src/*"]
+    "include": ["src/web/*"]
 }

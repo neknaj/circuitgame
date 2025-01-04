@@ -3,6 +3,9 @@ name = "circuitgame"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata]
+path = "src/rust/main.rs"
+
 [dependencies]
 wasm-bindgen = { version = "0.2", optional = true }
 nom = "7.1.3"
@@ -18,11 +21,12 @@ getrandom = { version = "0.2.15", features = ["js"] }
 
 [[bin]]
 name = "circuitgame_bin"
-path = "src/main.rs"
+path = "src/rust/main.rs"
 
 [lib]
 name = "circuitgame_lib"
 crate-type = ["cdylib"]
+path = "src/rust/lib.rs"
 
 [features]
 web = ["wasm-bindgen"]

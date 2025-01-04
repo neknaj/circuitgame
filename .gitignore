@@ -1,11 +1,11 @@
 # rust
 /target
 /pkg
-/src/circuitgame_lib.d.ts
+/src/web/circuitgame_lib.d.ts
 
 # ts
 /node_modules
-/src/cdom.ts
+/src/web/cdom.ts
 
 # dist
 /dist
