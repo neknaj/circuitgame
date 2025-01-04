@@ -9,16 +9,18 @@
     "copy-assets": "npm run copy-html && npm run copy-sample",
     "copy-html": "ncp ./src/index.html ./dist/index.html",
     "copy-sample": "ncp ./spec/sample.ncg ./dist/sample.ncg",
-    "build": "npm install && npm run build-rust && npm run copy-rust && npm run build-ts && npm run copy-assets",
+    "get-cdomjs": "curl -o src/cdom.ts https://raw.githubusercontent.com/neknaj/cDom/8d6fa798db021d3ce7e4e4a4c3073f5fb2e71237/cdom_module.ts",
+    "build": "npm install && mkdirp dist && npm run build-rust && npm run copy-rust && npm run get-cdomjs && npm run build-ts && npm run copy-assets",
     "server": "http-server ./dist",
     "clean": "npx rimraf target pkg node_modules",
     "install-rust": "bash -c \"curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh\""
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
     "binaryen": "^121.0.0",
     "http-server": "^14.1.1",
+    "mkdirp": "^3.0.1",
     "ncp": "^2.0.0",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2"
   }
 }

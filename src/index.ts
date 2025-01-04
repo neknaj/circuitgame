@@ -1,4 +1,5 @@
 import init, { Compile, CompilerIntermediateProducts, Test } from './circuitgame.js';
+import { elm as E, textelm as T } from './cdom.js';
 
 
 async function fetchTextFile(url: string): Promise<string> {

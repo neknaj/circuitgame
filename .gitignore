@@ -5,6 +5,7 @@
 
 # ts
 /node_modules
+/src/cdom.ts
 
 # dist
 /dist
