@@ -96,6 +96,10 @@ async function main() {
             "./src/web/circuitgame_lib.js"
         ],
         [
+            "./pkg/circuitgame_lib.js",
+            "./dist/circuitgame_lib.js"
+        ],
+        [
             "./pkg/circuitgame_lib.d.ts",
             "./src/web/circuitgame_lib.d.ts"
         ],

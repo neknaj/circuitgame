@@ -94,7 +94,7 @@ pub fn export_VMset(resource_id: u32,index: u32,value: bool) -> Result<(),String
     }
 }
 #[wasm_bindgen(js_name=VMgetOutput)]
-pub fn export_VMgetOutput(resource_id: u32,index: u32,value: bool) -> Vec<u32> {
+pub fn export_VMgetOutput(resource_id: u32) -> Vec<u32> {
     let mut vmres = match VM_resource.lock() {
         Ok(v)=>v,
         Err(_)=> return Vec::new()

@@ -6,6 +6,48 @@
         <script src="index.js" type="module"></script>
     </head>
     <body>
-        index.html
+        <div id="vm"></div>
     </body>
 </html>
+<style>
+    /* チェックボックスを非表示にする */
+    input[type="checkbox"] {
+        display: none;
+    }
+
+    /* ラベルのスタイル */
+    label {
+        display: inline-block;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 18px;
+        background-color: #f0f0f0;
+        border: 2px solid #ccc;
+        border-radius: 5px;
+        transition: background-color 0.3s, border-color 0.3s;
+        user-select: none;
+    }
+
+    /* チェックボックスがチェックされた時のスタイル */
+    input[type="checkbox"]:checked + label {
+        background-color: #4caf50;
+        border-color: #4caf50;
+        color: white;
+    }
+
+    /* チェックボックスがホバーされた時のスタイル */
+    label:hover {
+        background-color: #e0e0e0;
+    }
+
+    /* チェックボックスのON/OFFテキスト */
+    label::after {
+        content: "L";  /* デフォルトはOFF */
+        font-weight: bold;
+    }
+
+    /* チェックされたときのON表示 */
+    input[type="checkbox"]:checked + label::after {
+        content: "H";  /* チェック時はON */
+    }
+</style>

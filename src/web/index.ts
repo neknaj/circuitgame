@@ -1,5 +1,6 @@
 import init, { Compile, CompilerIntermediateProducts, Test } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
+import VMinit from './vm.js';
 
 
 async function fetchTextFile(url: string): Promise<string> {
@@ -35,7 +36,7 @@ async function run() {
             console.log(`test: ${name}`);
             console.table(test_result.test_result[name]);
         }
-        console.log(Compile(result.source, result.module_dependency_sorted[0]));
+        VMinit(document.querySelector("#vm"),result,result.module_dependency_sorted[0]);
     }
 }
 

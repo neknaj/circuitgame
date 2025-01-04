@@ -22,7 +22,7 @@ To install the project, follow these steps:
 
 3. Build the project:
     ```sh
-    npm run build
+    node build.js
     ```
 
 ## Usage
