@@ -30,7 +30,7 @@ module hAddr (x y)->(c s) {
     s: xor <- x y;
 }
 
-module fAdr (x y z)->(c s2) {
+module fAddr (x y z)->(c s2) {
     c1 s1: hAddr <- x y  ;
     c2 s2: hAddr <- s1 z ;
     c    : or    <- c1 c2;
@@ -53,4 +53,29 @@ test and:2->1 {
     t f -> f;
     f t -> f;
     f f -> f;
+}
+
+test xor:2->1 {
+    t t -> f;
+    t f -> t;
+    f t -> t;
+    f f -> f;
+}
+
+test hAddr:2->2 {
+    t t -> t f;
+    t f -> f t;
+    f t -> f t;
+    f f -> f f;
+}
+
+test fAddr:3->2 {
+    t t t -> t t;
+    f t t -> t f;
+    t f t -> t f;
+    f f t -> f t;
+    t t f -> t f;
+    f t f -> f t;
+    t f f -> f t;
+    f f f -> f f;
 }
