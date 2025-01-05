@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use super::types::*;
 
@@ -9,142 +9,156 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
     let mut expanded_modules: HashMap<String,CompiledModule> = std::collections::HashMap::new(); // 全てのゲートがnorだけで構成されているmodule
 
     for module_name in modules.iter().rev().skip(1) {
-        // println!("{:#?}",module_name);
-        match ast.components.iter().find_map( |component| { // ASTの中からmodule_nameを見つける
-                if let Component::Module(ref module) = component {
-                    if &module.name == module_name { return Some(module.clone()); }
-                }
-                None
+        println!("Expansion Module {:#?}",module_name);
+        let module = match ast.components.iter().find_map(|component| {
+            if let Component::Module(ref module) = component {
+                if &module.name == module_name { return Some((module.clone())); }
             }
-        ) {
-            Some(module) => {
-                // println!("found module {:?}",module);
-                // 展開したモジュールに付ける名前は #id.0の形にする
-                // idは展開する毎にインクリメント, 数値は展開するCompiledModuleのインデックス
-                let mut expansion_id = 0;
-                let mut tmp_gates = Vec::new();
-                let mut gates_name: HashMap<String,u32> = std::collections::HashMap::new();
-                let mut gates_rename: HashMap<String,String> = std::collections::HashMap::new();
-                // gatesをnorだけにする
-                for gate in module.gates {
-                    if gate.module_name=="nor" { // norはそのまま追加するだけ
-                        let output = match gate.outputs.get(0) {
-                            Some(v) => v.clone(),
-                            None => {errors.push(format!("nor has invalid output"));"".to_string()},
-                        };
-                        let input1 = match gate.inputs.get(0) {
-                            Some(v) => v.clone(),
-                            None => {errors.push(format!("nor has invalid input"));"".to_string()},
-                        };
-                        let input2 = match gate.inputs.get(1) {
-                            Some(v) => v.clone(),
-                            None => {errors.push(format!("nor has invalid input"));"".to_string()},
-                        };
-                        gates_name.insert(output, tmp_gates.len() as u32);
-                        tmp_gates.push((input1,input2));
+            None
+        }) {
+            Some(module) => module,
+            None => { errors.push(format!("Undefined module used: {}",module_name)); continue; },
+        };
+        println!("Module {:#?}",&module);
+        let mut tmp_gates = Vec::new(); // inputを処理する前の状態
+        let mut gates_rename = std::collections::HashMap::new(); // nameから#x.xを取得するためのmap
+        let mut gates_name = std::collections::HashMap::new(); // #x.xからindexを取得するためのmap
+        let mut gate_index = 0;
+        // input以外を解決
+        for gate in module.gates.clone() {
+            let expanded_gate = if (gate.module_name!="nor") {
+                match expanded_modules.get(&gate.module_name) { // nor以外の場合は展開済みのモジュールを取得
+                    Some(v) => v.clone(),
+                    None => {errors.push(format!("undefined gate used: {}",&gate.module_name));continue;}, // 依存関係によってトポロジカルソートされているので、nor以外は見つからないことは無い筈
+                }
+            } else { // norの場合
+                CompiledModule { inputs: 2, outputs: vec![0], gates: vec![(1,2)] }
+            };
+            // println!("EGate {:#?}",&expanded_gate);
+            println!("Gate {:#?}",&gate);
+            let gate_pointer = tmp_gates.clone().len() as u32; // 今回のgateの先頭index
+            // tmp_gatesに追加
+            let mut egate_index = 0;
+            for egate in &expanded_gate.gates {
+                let input1 = if (egate.0<expanded_gate.gates.len() as u32) {
+                        format!("#{}.{}",gate_index,egate.0)
                     }
-                    else { // norでなかったら展開する
-                        match expanded_modules.get(&gate.module_name) {
-                            Some(v) => {
-                                // println!("not the nor gate {:#?}",&gate.module_name);
-                                // println!("{:#?}",&gate);
-                                let mut gate_index = 0;
-                                // gateを追加
-                                for gate in &v.gates {
-                                    gates_name.insert(format!("#{}.{}",expansion_id,gate_index), tmp_gates.len() as u32);
-                                    tmp_gates.push((format!("#{}.{}",expansion_id,gate.0),format!("#{}.{}",expansion_id,gate.1)));
-                                    gate_index+=1;
-                                }
-                                // inputを処理
-                                // println!("v inputs  {:?}",&v.inputs);
-                                for i in 0..v.inputs {
-                                    let name = match gate.inputs.get(i as usize) {
-                                        Some(v) => v.clone(),
-                                        None => {errors.push(format!("gate has invalid input {}",i));"".to_string()},
-                                    };
-                                    gates_rename.insert(format!("#{}.{}",expansion_id,v.gates.len() as u32+i), name);
-                                }
-                                // outputを処理
-                                // println!("v outputs {:?}",&v.outputs);
-                                let mut output_index = 0;
-                                for i in v.outputs.clone() {
-                                    // println!("{}",i);
-                                    // println!("{:#?}",gate.outputs);
-                                    let name = match gate.outputs.get(output_index as usize) {
-                                        Some(v) => v.clone(),
-                                        None => {errors.push(format!("gate has invalid output {}",i));"".to_string()},
-                                    };
-                                    gates_rename.insert(name,format!("#{}.{}",expansion_id,i));
-                                    output_index+=1;
-                                }
-                                for gate in gate.outputs.clone() {
-                                    gates_name.insert(gate, tmp_gates.len() as u32+output_index);
-                                }
-                                expansion_id+=1;
-                            },
-                            None => {errors.push(format!("undefined gate used"));}, // 依存関係によってトポロジカルソートされているので、見つからないことは無い筈
-                        };
+                    else {
+                        // gate.inputs[0].clone()
+                        gate.inputs[egate.0 as usize - expanded_gate.gates.len()].clone()
+                    };
+                let input2 = if (egate.1<expanded_gate.gates.len() as u32) {
+                        format!("#{}.{}",gate_index,egate.1)
                     }
-                }
-                // gates_nameにinputsを追加
-                let mut inputs_index = 0;
-                for input in &module.inputs {
-                    gates_name.insert(input.clone(), tmp_gates.len() as u32 +inputs_index);
-                    inputs_index+=1;
-                }
-                // tmp_gatesのinputの名前を解決する
-                let mut gates = Vec::new();
-                for gate in &tmp_gates {
-                    // renameを解決
-                    let gate0 = match gates_rename.get(&gate.0) {
-                        Some(v) => v.clone(),
-                        None => gate.0.clone(),
+                    else {
+                        // gate.inputs[1].clone()
+                        gate.inputs[egate.1 as usize - expanded_gate.gates.len()].clone()
                     };
-                    let gate1 = match gates_rename.get(&gate.1) {
-                        Some(v) => v.clone(),
-                        None => gate.1.clone(),
-                    };
-                    // indexを解決
-                    let input1 = match gates_name.get(&gate0) {
-                        Some(v) => v.clone(),
-                        None => {errors.push(format!("gate has invalid input {} {}",&gate.0,&gate0));100},
-                    };
-                    let input2 = match gates_name.get(&gate1) {
-                        Some(v) => v.clone(),
-                        None => {errors.push(format!("gate has invalid input {} {}",&gate.1,&gate1));101},
-                    };
-                    gates.push((input1,input2));
-                }
-                // moduleのoutputの名前を解決する
-                let mut outputs = Vec::new();
-                for output in module.outputs {
-                    // renameを解決
-                    let output_ = match gates_rename.get(&output) {
-                        Some(v) => v.clone(),
-                        None => output.clone(),
-                    };
-                    // indexを解決
-                    let out = match gates_name.get(&output_) {
-                        Some(v) => v.clone(),
-                        None => {errors.push(format!("module has invalid output"));102},
-                    };
-                    outputs.push(out);
-                }
-                // println!("GatesName {:?}",gates_name);
-                // println!("GatesRName{:?}",gates_rename);
-                // println!("TMP Gates {:?}",tmp_gates);
-                // println!("Gates     {:?}",gates);
-                // println!("Outputs   {:?}",outputs);
-                // expanded_modulesに保存
-                expanded_modules.insert(module_name.clone(), CompiledModule {
-                    inputs: module.inputs.len() as u32,
-                    outputs: outputs,
-                    gates
-                });
-                // println!("{:#?}",expanded_modules);
-            },
-            None => { errors.push(format!("Undefined module used: {}",module_name)); },
+                tmp_gates.push((
+                    input1,
+                    input2,
+                ));
+                gates_name.insert(format!("#{}.{}",gate_index,egate_index),gate_pointer+egate_index);
+                egate_index+=1;
+            }
+            // outputをgates_nameに追加
+            let mut output_index = 0;
+            for output in expanded_gate.outputs {
+                let name = match gate.outputs.get(output_index as usize) {
+                    Some(v) => v.clone(),
+                    None => {errors.push(format!("gate has invalid output {}",output));"".to_string()},
+                };
+                // println!("Name {:#?}",&name);
+                gates_rename.insert(name,format!("#{}.{}",gate_index,output_index));
+                output_index+=1;
+            }
+            gate_index+=1;
         }
+        let mut input_index = 0;
+        for input in &module.inputs {
+            gates_rename.insert(input.clone(), format!("#i.{}",input_index));
+            gates_name.insert(format!("#i.{}",input_index),tmp_gates.len() as u32+input_index);
+            input_index+=1;
+        }
+        // println!("TmpGates {:#?}",&tmp_gates);
+        // println!("GatesReName {:#?}",&gates_rename);
+        // println!("GatesName {:#?}",&gates_name);
+        // GatesReNameでinputを解決
+        gate_index = 0; // gate_indexをリセット
+        for gate in module.gates {
+            let expanded_gate = if (gate.module_name!="nor") {
+                match expanded_modules.get(&gate.module_name) { // nor以外の場合は展開済みのモジュールを取得
+                    Some(v) => v.clone(),
+                    None => {errors.push(format!("undefined gate used: {}",&gate.module_name));continue;}, // 依存関係によってトポロジカルソートされているので、nor以外は見つからないことは無い筈
+                }
+            } else { // norの場合
+                CompiledModule { inputs: 2, outputs: vec![0], gates: vec![(1,2)] }
+            };
+            println!("EGate {:#?}",&expanded_gate);
+            println!("Gate {:#?}",&gate);
+            let mut input_index = 0;
+            for input in gate.inputs {
+                println!("Input {:#?}",&input);
+                let input_resolved = match gates_rename.get(&input) {
+                    Some(v) => v.clone(),
+                    None => {errors.push(format!("undefined input used: {}",input));continue;},
+                };
+                let input_resolved2 = match gates_name.get(&input_resolved) {
+                    Some(v) => v.clone(),
+                    None => {errors.push(format!("undefined input used: {}",input_resolved));continue;},
+                };
+                // println!("Input {:#?} {} #{}.{}",&input,input_resolved,gate_index,tmp_gates.len() as u32+input_index);
+                gates_name.insert(format!("#{}.{}",gate_index,tmp_gates.len() as u32+input_index),input_resolved2);
+                gates_rename.insert(input,format!("#{}.{}",gate_index,tmp_gates.len() as u32+input_index));
+                input_index+=1;
+            }
+            gate_index+=1;
+        }
+        println!("TmpGates {:#?}",&tmp_gates);
+        println!("GatesReName {:#?}",&gates_rename);
+        println!("GatesName {:#?}",&gates_name);
+        // GatesNameでtmp_gatesを解決
+        let mut expanded_gates = Vec::new();
+        for gate in tmp_gates {
+            let input1_ = match gates_rename.get(&gate.0) {
+                Some(v) => v.clone(),
+                None => gate.0.clone(),
+            };
+            let input2_ = match gates_rename.get(&gate.1) {
+                Some(v) => v.clone(),
+                None => gate.1.clone(),
+            };
+            let input1 = match gates_name.get(&input1_) {
+                Some(v) => v.clone(),
+                None => {errors.push(format!("undefined input used0: {} {}",&input1_,&gate.0));continue;},
+            };
+            let input2 = match gates_name.get(&input2_) {
+                Some(v) => v.clone(),
+                None => {errors.push(format!("undefined input used0: {} {}",&input2_,&gate.1));continue;},
+            };
+            // println!("Input {:?} {} {}",gate,input1,input2);
+            expanded_gates.push((input1,input2));
+        }
+        // GatesNameでoutputを解決
+        let mut outputs = Vec::new();
+        for output in module.outputs {
+            let output_resolved = match gates_rename.get(&output) {
+                Some(v) => v.clone(),
+                None => {errors.push(format!("undefined output used2: {}",output));continue;},
+            };
+            let output_resolved2 = match gates_name.get(&output_resolved) {
+                Some(v) => v.clone(),
+                None => {errors.push(format!("undefined output used3: {}",output));continue;},
+            };
+            outputs.push(output_resolved2);
+        }
+        println!("Outputs {:#?}",&outputs);
+        println!("ExpandedGates {:#?}",&expanded_gates);
+        expanded_modules.insert(module_name.clone(), CompiledModule {
+            inputs: module.inputs.len() as u32,
+            outputs: outputs,
+            gates: expanded_gates,
+        });
     }
 
     if errors.len()==0 { Ok(expanded_modules) }
