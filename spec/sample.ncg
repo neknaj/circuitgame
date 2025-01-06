@@ -4,22 +4,34 @@ using nor:2->1;
 // 回路を定義する
 //
 
+
 // 定数
 
 module true ()->(a) {
-    a: nor <- b b;
-    b: nor <- a a;
+    a: not <- b;
+    b: not <- a;
 }
 
 module false ()->(b) {
-    a: nor <- b b;
-    b: nor <- a a;
+    a: not <- b;
+    b: not <- a;
 }
 
 // 基本的なゲート
 
+module buf (x)->(b) {
+    a: not <- x;
+    b: not <- a;
+}
+
 module not (x)->(a) {
     a: nor <- x x;
+}
+
+module and (x y)->(c) {
+    a: not <- x  ;
+    b: not <- y  ;
+    c: nor <- a b;
 }
 
 module or (x y)->(b) {
@@ -27,10 +39,10 @@ module or (x y)->(b) {
     b: not <- a  ;
 }
 
-module and (x y)->(c) {
+module nand (x y)->(c) {
     a: not <- x  ;
     b: not <- y  ;
-    c: nor <- a b;
+    c: or <- a b;
 }
 
 module xor (x y)->(e) {
@@ -81,9 +93,21 @@ test false:0->1 {
     -> f;
 }
 
+test buf:1->1 {
+    t -> t;
+    f -> f;
+}
+
 test not:1->1 {
     t -> f;
     f -> t;
+}
+
+test and:2->1 {
+    t t -> t;
+    t f -> f;
+    f t -> f;
+    f f -> f;
 }
 
 test or:2->1 {
@@ -93,11 +117,11 @@ test or:2->1 {
     f f -> f;
 }
 
-test and:2->1 {
-    t t -> t;
-    t f -> f;
-    f t -> f;
-    f f -> f;
+test nand:2->1 {
+    t t -> f;
+    t f -> t;
+    f t -> t;
+    f f -> t;
 }
 
 test xor:2->1 {
