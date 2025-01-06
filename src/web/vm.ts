@@ -77,6 +77,41 @@ function updateOutput() {
     VM.next(vm_id,1);
     (Array.from(document.querySelectorAll(".output input")) as HTMLInputElement[])
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
+    // グラフの色を反映
+    {
+        console.log(document.querySelectorAll("#graph .node.input"))
+        document.querySelectorAll("#graph .node.input").forEach((node,i)=>{
+            console.log("input",node,input[i],i,input)
+            if (input[i]) {
+                node.classList.add("active");
+            }
+            else {
+                node.classList.remove("active");
+            }
+        });
+    }
+    {
+        const gate = Array.from(VM.getGates(vm_id)).map(v=>v==1);
+        document.querySelectorAll("#graph .node.gate").forEach((node,i)=>{
+            if (gate[i]) {
+                node.classList.add("active");
+            }
+            else {
+                node.classList.remove("active");
+            }
+        });
+    }
+    {
+        const gate = Array.from(VM.getOutput(vm_id)).map(v=>v==1);
+        document.querySelectorAll("#graph .node.output").forEach((node,i)=>{
+            if (gate[i]) {
+                node.classList.add("active");
+            }
+            else {
+                node.classList.remove("active");
+            }
+        });
+    }
 }
 setInterval(updateOutput, 10);
 
