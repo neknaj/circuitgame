@@ -5,6 +5,7 @@ import { IntermediateProducts } from './types.js';
 let vm_id = 0;
 
 function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: string) {
+    elm.innerHTML = "";
     product.module_type_list
     console.log(Compile(product.source,module_name));
     const moduleType = product.module_type_list.filter(m=>m.name==module_name)[0];
