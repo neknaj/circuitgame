@@ -122,7 +122,7 @@ function constructGraph(product: IntermediateProducts,module_name: string,offset
     let result = "";
     for (let gate of gates) {
         if (gate.module_name=="nor") {
-            result += `nor${offset}\n`
+            result += `nor${offset}[nor]\n`
             offset+=1;
         }
         else {
