@@ -22,7 +22,8 @@ function buildTS() {
         tsconfig: './tsconfig.json', // tsconfig.jsonのパス
         outfile: './dist/index.js',    // 出力先
         bundle: true,                   // 依存関係をバンドル
-        minify: true,                   // 圧縮
+        // minify: true,                   // 圧縮
+        minify: false,                   // 圧縮
         sourcemap: false,                // ソースマップ生成
         target: ['esnext'],             // トランスパイルのターゲット
         loader: { '.ts': 'ts' },        // TypeScriptを処理
@@ -61,10 +62,8 @@ function copyFiles(files) {
     return Promise.all(copyPromises);
 }
 
-async function getCdomjs() {
-    const url = 'https://raw.githubusercontent.com/neknaj/cDom/8d6fa798db021d3ce7e4e4a4c3073f5fb2e71237/cdom_module.ts';
-    const savePath = './src/web/cdom.ts';
-    if (fs.existsSync(savePath)) return; // 既に存在するならダウンロードしない
+async function getFile(savePath,url) {
+    if (fs.existsSync(savePath)) return false; // 既に存在するならダウンロードしない
     await new Promise((resolve, reject) => {
         https.get(url, (res) => {
             if (res.statusCode === 200) {
@@ -85,6 +84,7 @@ async function getCdomjs() {
             reject(`Error: ${err.message}`);
         });
     });
+    return true;
 }
 
 async function main() {
@@ -96,10 +96,6 @@ async function main() {
             "./src/web/circuitgame_lib.js"
         ],
         [
-            "./pkg/circuitgame_lib.js",
-            "./dist/circuitgame_lib.js"
-        ],
-        [
             "./pkg/circuitgame_lib.d.ts",
             "./src/web/circuitgame_lib.d.ts"
         ],
@@ -108,7 +104,14 @@ async function main() {
             "./dist/circuitgame_lib_bg.wasm"
         ],
     ]);
-    await getCdomjs();
+    await getFile('./src/web/cdom.ts','https://raw.githubusercontent.com/neknaj/cDom/8d6fa798db021d3ce7e4e4a4c3073f5fb2e71237/cdom_module.ts');
+    if (await getFile('./src/web/layout.js','https://raw.githubusercontent.com/neknaj/webSplitLayout/c7e1c52cb37a8bfbf9968b825c05a2e9924ca88e/type1/layout.js')) {
+        fs.readFile('./src/web/layout.js', 'utf8', (err, data) => {
+            const updatedData = "import { elm } from './cdom.js';\n\n" + data + "\n\nexport { initlayout };";
+            fs.writeFile('./src/web/layout.js', updatedData, (err) => {});
+        });
+    };
+    await getFile('./dist/layout.css','https://raw.githubusercontent.com/neknaj/webSplitLayout/c7e1c52cb37a8bfbf9968b825c05a2e9924ca88e/type1/layout.css');
     await buildTS();
     await copyFiles([
         [

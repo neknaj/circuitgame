@@ -5,6 +5,8 @@ import VMinit from './vm.js';
 import ace from "ace-builds/src-noconflict/ace";
 import { CustomMode, darkTheme } from "./editor.mode.js";
 
+import { initlayout } from "./layout.js";
+
 async function fetchTextFile(url: string): Promise<string> {
     try {
         // fetchでリソースを取得
@@ -51,6 +53,18 @@ async function update() {
 
 async function run() {
     await init();
+    initlayout(
+        document.querySelector("#layoutroot"),
+        ["h",[3,5],[
+            ["c","text1"],
+            ["c","text2"],
+        ]],
+        {
+            text1: ()=>{return E("div",{id:"vm"},[])},
+            text2: ()=>{return E("div",{id:"editor"},[])},
+            empty: ()=>{return E("h1",{},[T("empty")])},
+        }
+    )
     const input = await fetchTextFile("./sample.ncg");
     {
         console.log("< Input >")
