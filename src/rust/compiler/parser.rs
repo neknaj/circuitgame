@@ -13,7 +13,7 @@ use nom::{
 // Parser implementations
 fn identifier(input: &str) -> IResult<&str, String> {
     map(
-        take_while1(|c: char| c.is_alphanumeric()),
+        take_while1(|c: char| c.is_alphanumeric() || c == '_'),
         String::from,
     )(input)
 }

@@ -3,8 +3,8 @@
 <components> := <component> <components> | ε
 <component> := <using> | <module> | <test>
 
-<mName> := /[0-9a-zA-Z]+/
-<mId> := /[0-9a-zA-Z]+/
+<mName> := /([0-9a-zA-Z]|_)+/
+<mId> := /([0-9a-zA-Z]|_)+/
 <int> := /[0-9]+/
 
 <mType> := <int> <rArrow> <int>
