@@ -35,8 +35,19 @@
     #editor {
         height: 100%;
     }
-    #graph .active rect {
-        fill: #045507 !important;
+
+    #graph {
+        & .nodes .active rect {
+            fill: #045507 !important;
+        }
+        & .clusters {
+            & .nodeLabel {
+                color: #ffffff4f !important;
+            }
+            &  rect {
+                fill: #000000 !important;
+            }
+        }
     }
 
     #vm {

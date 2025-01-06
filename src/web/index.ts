@@ -85,9 +85,17 @@ async function upadteGraph(product: IntermediateProducts,module_name: string) {
 %%{init: {'theme':'dark'}}%%
 graph TD
 
+${expanded.inputs>0?"subgraph Inputs":""}
 ${new Array(expanded.inputs).fill(0).map((v,i)=>`in${i}(in ${i})`).join("\n")}
+${expanded.inputs>0?"end":""}
+
+${expanded.gates.length>0?"subgraph Gates":""}
 ${expanded.gates.map((g,i)=>`nor${i}[nor]`).join("\n")}
+${expanded.gates.length>0?"end":""}
+
+${expanded.outputs.length>0?"subgraph Outputs":""}
 ${expanded.outputs.map((v,i)=>`out${i}(out ${i})`).join("\n")}
+${expanded.outputs.length>0?"end":""}
 
 ${new Array(expanded.inputs).fill(0).map((v,i)=>`class in${i} input;`).join("\n")}
 ${expanded.gates.map((g,i)=>`class nor${i} gate;`).join("\n")}
