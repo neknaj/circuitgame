@@ -1,10 +1,11 @@
 import { Compile, VM } from './circuitgame.js';
 import { elm as E, textelm as T, textelm } from './cdom.js';
-import { IntermediateProducts } from './types.js';
+import { IntermediateProducts, CompiledModule, CompiledGateInput } from './types.js';
 
 let vm_id = null;
 let selected = null;
 let input = [];
+let compiledModule: CompiledModule;
 
 function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: string = null) {
     if (module_name!=null&&product.module_dependency_sorted.includes(module_name)==false) { module_name = null; }
@@ -66,6 +67,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         });
         elm.dispatchEvent(myEvent);
     }
+    compiledModule = product.expanded_modules[module_name];
 }
 
 function updateOutput() {
@@ -105,6 +107,30 @@ function updateOutput() {
         const gate = Array.from(VM.getOutput(vm_id)).map(v=>v==1);
         document.querySelectorAll("#graph .node.output").forEach((node,i)=>{
             if (gate[i]) {
+                node.classList.add("active");
+            }
+            else {
+                node.classList.remove("active");
+            }
+        });
+    }
+    // ワイヤーの色
+
+    {
+        const gate = Array.from(VM.getGates(vm_id)).map(v=>v==1);
+        const wires = compiledModule.gates.flat(1).concat(compiledModule.outputs.map(x=>({NorGate:x} as CompiledGateInput)));
+        // console.log(wires)
+        // console.log(document.querySelectorAll("#graph .edgePaths path"))
+        document.querySelectorAll("#graph .edgePaths path").forEach((node,i)=>{
+            let active = false;
+            // console.log(wires[i])
+            if ("NorGate" in wires[i]) {
+                active = gate[wires[i].NorGate];
+            }
+            else {
+                active = input[wires[i].Input];
+            }
+            if (active) {
                 node.classList.add("active");
             }
             else {

@@ -50,13 +50,13 @@ export interface NodeDepends {
 
 
 // CompiledGateInput型の修正
-type CompiledGateInput = | { NorGate: number } | { Input: number };
+export type CompiledGateInput = | { NorGate: number } | { Input: number };
 
 // CompiledGate型の定義
 type CompiledGate = [CompiledGateInput, CompiledGateInput];
 
 // CompiledModule構造体の定義
-interface CompiledModule {
+export interface CompiledModule {
     inputs: number;
     outputs: number[];
     gates: CompiledGate[];
