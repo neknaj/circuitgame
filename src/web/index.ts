@@ -49,7 +49,7 @@ async function update() {
         console.log(`test: ${name}`);
         console.table(test_result.test_result[name]);
     }
-    VMinit(document.querySelector("#vm"),result,result.module_dependency_sorted[0]);
+    VMinit(document.querySelector("#vm"),result);
 }
 
 async function run() {
