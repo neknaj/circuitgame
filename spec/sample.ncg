@@ -1,7 +1,16 @@
 // Example usage with comments
 using nor:2->1;
 
-// This is a NOT gate module
+module true ()->(a) {
+    a: nor <- b b;
+    b: nor <- a a;
+}
+
+module false ()->(b) {
+    a: nor <- b b;
+    b: nor <- a a;
+}
+
 module not (x)->(a) {
     a: nor <- x x;
 }
@@ -34,6 +43,14 @@ module fAddr (x y z)->(c s2) {
     c1 s1: hAddr <- x y  ;
     c2 s2: hAddr <- s1 z ;
     c    : or    <- c1 c2;
+}
+
+test true:0->1 {
+    -> t;
+}
+
+test false:0->1 {
+    -> f;
 }
 
 test not:1->1 {
