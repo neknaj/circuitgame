@@ -32,9 +32,10 @@ async function initEditor() {
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/custom_theme"); // テーマの設定
     editor.session.setMode(new CustomMode());
+    editor.getSession().on('change',update);
     editor.setValue(await fetchTextFile("./sample.ncg"));
     editor.moveCursorTo(0, 0);
-    editor.getSession().on('change',update);
+    editor.setFontSize(15);
 }
 
 async function update() {
@@ -65,20 +66,6 @@ async function run() {
             empty: ()=>{return E("h1",{},[T("empty")])},
         }
     )
-    const input = await fetchTextFile("./sample.ncg");
-    {
-        console.log("< Input >")
-        const result = CompilerIntermediateProducts(input);
-        console.log(result);
-        console.log(result.module_dependency_sorted[0]);
-        const test_result = Test(input);
-        console.log(test_result);
-        for (let name of Object.keys(test_result.test_result)) {
-            console.log(`test: ${name}`);
-            console.table(test_result.test_result[name]);
-        }
-        VMinit(document.querySelector("#vm"),result,result.module_dependency_sorted[0]);
-    }
     await initEditor();
 }
 
