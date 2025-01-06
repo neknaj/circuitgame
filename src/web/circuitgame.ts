@@ -27,5 +27,6 @@ const VM = {
     next: VMnext,
 }
 
-export { CompilerIntermediateProducts, Test, Compile, VM };
+export { CompilerIntermediateProducts, Test, Compile, VM};
+export { IntermediateProducts, TestProducts };
 export default init;

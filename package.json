@@ -16,6 +16,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "ace-builds": "^1.37.1"
+    "ace-builds": "^1.37.1",
+    "mermaid": "^11.4.1"
   }
 }

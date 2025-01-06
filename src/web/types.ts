@@ -48,6 +48,20 @@ export interface NodeDepends {
     depends: string;
 }
 
+
+// CompiledGateInput型の修正
+type CompiledGateInput = | { NorGate: number } | { Input: number };
+
+// CompiledGate型の定義
+type CompiledGate = [CompiledGateInput, CompiledGateInput];
+
+// CompiledModule構造体の定義
+interface CompiledModule {
+    inputs: number;
+    outputs: number[];
+    gates: CompiledGate[];
+}
+
 export interface IntermediateProducts {
     source: string;
     warns: string[];
@@ -56,6 +70,7 @@ export interface IntermediateProducts {
     module_type_list: ModuleType[];
     module_dependency: NodeDepends[];
     module_dependency_sorted: string[];
+    expanded_modules: Map<string,CompiledModule>;
 }
 
 export type TestPattern = {

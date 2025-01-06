@@ -2,7 +2,7 @@ import { Compile, VM } from './circuitgame.js';
 import { elm as E, textelm as T, textelm } from './cdom.js';
 import { IntermediateProducts } from './types.js';
 
-let vm_id = 0;
+let vm_id = null;
 let selected = null;
 let input = [];
 
@@ -58,10 +58,18 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         ]),
     )));
     vm_id = VM.init(Compile(product.source,module_name));
-    setInterval(updateOutput, 10);
+    {
+        const myEvent = new CustomEvent("moduleChanged", {
+            detail: { module_name, product: product },
+            bubbles: true, // イベントが親要素に伝播する
+            cancelable: true, // イベントをキャンセル可能にする
+        });
+        elm.dispatchEvent(myEvent);
+    }
 }
 
 function updateOutput() {
+    if (vm_id==null) { return; }
     console.log(vm_id);
     input = Array.from(document.querySelectorAll(".input input"))
                 .map(e=>(e as HTMLInputElement).checked)
@@ -70,5 +78,6 @@ function updateOutput() {
     (Array.from(document.querySelectorAll(".output input")) as HTMLInputElement[])
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
 }
+setInterval(updateOutput, 10);
 
 export default init;

@@ -1,9 +1,11 @@
-import init, { Compile, CompilerIntermediateProducts, Test } from './circuitgame.js';
+import init, { Compile, CompilerIntermediateProducts, Test, IntermediateProducts } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
 import VMinit from './vm.js';
 
 import ace from "ace-builds/src-noconflict/ace";
 import { CustomMode, darkTheme } from "./editor.mode.js";
+
+import mermaid from "mermaid";
 
 import { initlayout } from "./layout.js";
 
@@ -54,7 +56,47 @@ async function update() {
     catch (e) {
         console.error(e);
     }
+    // VM
     VMinit(document.querySelector("#vm"),result);
+}
+
+document.addEventListener("moduleChanged", (event) => {
+    console.log(event);
+    if ("detail" in event) {
+        let data = event.detail as { module_name: string, product: IntermediateProducts };
+        upadteGraph(data.product,data.module_name);
+    }
+});
+async function upadteGraph(product: IntermediateProducts,module_name: string) {
+    console.log(product.expanded_modules[module_name]);
+    const expanded = product.expanded_modules[module_name];
+    const wires = expanded.gates.map((g,i)=>g.map((v)=>{
+        if ("NorGate" in v) {
+            return `nor${v.NorGate} --> nor${i}`;
+        }
+        else {
+            return `in${v.Input} --> nor${i}`;
+        }
+    }).join("\n")).join("\n")
+    const output_wires = expanded.outputs.map((v,i)=>`nor${v} --> out${i}`).join("\n");
+    // Graph
+    {
+        const graphDefinition = `
+%%{init: {'theme':'dark'}}%%\n
+graph TD\n
+${new Array(expanded.inputs).fill(0).map((v,i)=>`in${i}(in ${i})`).join("\n")}
+${expanded.outputs.map((v,i)=>`out${i}(out ${i})`).join("\n")}
+${expanded.gates.map((g,i)=>`nor${i}[nor]`).join("\n")}
+${wires}
+${output_wires}
+        `;
+        console.log(graphDefinition);
+        const elm = document.querySelector("#graph");
+        // console.log(elm);
+        const res = await mermaid.render("mermaidGraph", graphDefinition);
+        // console.log(res)
+        elm.innerHTML = res.svg;
+    }
 }
 
 async function run() {
@@ -62,16 +104,20 @@ async function run() {
     initlayout(
         document.querySelector("#layoutroot"),
         ["h",[3,5],[
-            ["c","text1"],
-            ["c","text2"],
+            ["v",[1,1],[
+                ["c","vmArea"],
+                ["c","graphArea"],
+            ]],
+            ["c","editArea"],
         ]],
         {
-            text1: ()=>{return E("div",{id:"vm"},[])},
-            text2: ()=>{return E("div",{id:"editor"},[])},
-            empty: ()=>{return E("h1",{},[T("empty")])},
+            vmArea: ()=>{return E("div",{id:"vm"},[])},
+            graphArea: ()=>{return E("div",{id:"graph"},[])},
+            editArea: ()=>{return E("div",{id:"editor"},[])},
         }
     )
     await initEditor();
+    // await initGraph();
 }
 
 run();

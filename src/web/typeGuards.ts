@@ -15,6 +15,8 @@ export function isIntermediateProducts(obj: any): obj is IntermediateProducts {
     if (!Array.isArray(obj.module_dependency) || !obj.module_dependency.every(isNodeDepends)) return false;
     if (!Array.isArray(obj.module_dependency_sorted) || !obj.module_dependency_sorted.every(m => typeof m === 'string')) return false;
 
+    // expanded_modulesの型チェック
+
     // astの型チェック
     if (!isFile(obj.ast)) return false;
 
