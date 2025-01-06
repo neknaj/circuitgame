@@ -1,5 +1,10 @@
-// Example usage with comments
 using nor:2->1;
+
+//
+// 回路を定義する
+//
+
+// 定数
 
 module true ()->(a) {
     a: nor <- b b;
@@ -10,6 +15,8 @@ module false ()->(b) {
     a: nor <- b b;
     b: nor <- a a;
 }
+
+// 基本的なゲート
 
 module not (x)->(a) {
     a: nor <- x x;
@@ -34,6 +41,8 @@ module xor (x y)->(e) {
     e: nor <- c d;
 }
 
+// 加算器
+
 module hAddr (x y)->(c s) {
     c: and <- x y;
     s: xor <- x y;
@@ -44,6 +53,25 @@ module fAddr (x y z)->(c s2) {
     c2 s2: hAddr <- s1 z ;
     c    : or    <- c1 c2;
 }
+
+// ラッチ回路
+
+module sr_latch (s r)->(q nq) {
+    q: nor <- r nq;
+    nq: nor <- s q;
+}
+
+module d_latch (d clk)->(q nq) {
+    nd: not <- d;
+    s: nor <- nd clk;
+    r: nor <- d clk;
+    q nq: sr_latch <- s r;
+}
+
+
+//
+// テストを定義する
+//
 
 test true:0->1 {
     -> t;
