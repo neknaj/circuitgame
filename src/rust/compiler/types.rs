@@ -74,9 +74,14 @@ pub struct NodeDepends {
 
 // norに展開
 
+#[derive(Debug, Clone, Serialize)]
+pub enum CompiledGateInput {
+    NorGate(u32), // gateのn番目
+    Input(u32), // inputのn番目
+}
+
 // 入力のgateのインデックスを保存
-// 入力がmoduleのinputの場合は、gates.len()+indexにする
-pub type CompiledGate = (u32,u32);
+pub type CompiledGate = (CompiledGateInput,CompiledGateInput);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CompiledModule {

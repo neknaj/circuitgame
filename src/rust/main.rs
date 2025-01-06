@@ -63,7 +63,7 @@ fn main() {
     let binary = match compiler::serialize(result.clone(), module.as_str()) {
         Ok(v)=>v,
         Err(v)=>{
-            println!("{}:serialize {}","[error]".red(),v);
+            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
             return;
         }
     };
