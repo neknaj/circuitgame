@@ -89,8 +89,8 @@ ${expanded.inputs>0?"subgraph Inputs":""}
 ${new Array(expanded.inputs).fill(0).map((v,i)=>`in${i}(in ${i})`).join("\n")}
 ${expanded.inputs>0?"end":""}
 
-${expanded.gates.length>0?"subgraph Gates":""}
-${expanded.gates.map((g,i)=>`nor${i}[nor]`).join("\n")}
+${expanded.gates.length>0?`subgraph Gates[${module_name}]`:""}
+${constructGraph(product,module_name)[0]}
 ${expanded.gates.length>0?"end":""}
 
 ${expanded.outputs.length>0?"subgraph Outputs":""}
@@ -111,14 +111,42 @@ ${output_wires}
         // console.log(res)
         elm.innerHTML = res.svg;
     }
+    constructGraph(product,"and",0);
+}
+
+import { Module } from './types.js';
+function constructGraph(product: IntermediateProducts,module_name: string,offset: number=0,subgraph=0): [string,number,number] {
+    if (module_name=="nor") { return [`nor${offset}\n`,offset+1,subgraph]; }
+    const gates = (product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module).gates;
+    console.log(gates,module_name)
+    let result = "";
+    for (let gate of gates) {
+        if (gate.module_name=="nor") {
+            result += `nor${offset}\n`
+            offset+=1;
+        }
+        else {
+            subgraph+=1;
+            result += `subgraph ${subgraph}[${gate.module_name}]\n`;
+            {
+                const res = constructGraph(product,gate.module_name,offset,subgraph);
+                result += res[0];
+                offset = res[1];
+                subgraph = res[2];
+            }
+            result += `end\n`;
+        }
+    }
+    console.log(result)
+    return [result,offset,subgraph];
 }
 
 async function run() {
     await init();
     initlayout(
         document.querySelector("#layoutroot"),
-        ["h",[3,5],[
-            ["v",[1,1],[
+        ["h",[3,1],[
+            ["h",[1,3],[
                 ["c","vmArea"],
                 ["c","graphArea"],
             ]],

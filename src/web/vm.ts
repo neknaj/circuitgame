@@ -70,7 +70,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
 
 function updateOutput() {
     if (vm_id==null) { return; }
-    console.log(vm_id);
+    // console.log(vm_id);
     input = Array.from(document.querySelectorAll(".input input"))
                 .map(e=>(e as HTMLInputElement).checked)
     input.forEach((v,i)=>VM.set(vm_id,i,v));
@@ -79,9 +79,9 @@ function updateOutput() {
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
     // グラフの色を反映
     {
-        console.log(document.querySelectorAll("#graph .node.input"))
+        // console.log(document.querySelectorAll("#graph .node.input"))
         document.querySelectorAll("#graph .node.input").forEach((node,i)=>{
-            console.log("input",node,input[i],i,input)
+            // console.log("input",node,input[i],i,input)
             if (input[i]) {
                 node.classList.add("active");
             }
