@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>TS RUST</title>
+        <title>Circuit Game</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script src="index.js" type="module"></script>
@@ -33,6 +33,9 @@
         }
     }
     #editor {
+        height: calc(100% - 30px);
+    }
+    #editor_area {
         height: 100%;
     }
 
@@ -69,39 +72,45 @@
         padding: 5px;
     }
 
-    input[type="checkbox"] {
-        display: none;
-    }
-
     label {
-        display: inline-block;
-        padding: 10px 20px;
-        cursor: pointer;
-        font-size: 18px;
-        background-color: #000000;
-        border: 2px solid #878787;
-        border-radius: 5px;
-        transition: background-color 0.1s, border-color 0.1s;
-        user-select: none;
+        padding-left: 0.2em;
     }
 
-    input[type="checkbox"]:checked + label {
-        background-color: #045507;
-        color: white;
-    }
+    #vm {
+        & input[type="checkbox"] {
+            display: none;
+        }
 
-    label:hover {
-        background-color: #272727;
-    }
-    input[type="checkbox"]:checked + label:hover {
-        background-color: #033c05;
-    }
+        & label {
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 18px;
+            background-color: #000000;
+            border: 2px solid #878787;
+            border-radius: 5px;
+            transition: background-color 0.1s, border-color 0.1s;
+            user-select: none;
+        }
 
-    label::after {
-        content: "L";
-        font-weight: bold;
-    }
-    input[type="checkbox"]:checked + label::after {
-        content: "H";
+        & input[type="checkbox"]:checked + label {
+            background-color: #045507;
+            color: white;
+        }
+
+        & label:hover {
+            background-color: #272727;
+        }
+        & input[type="checkbox"]:checked + label:hover {
+            background-color: #033c05;
+        }
+
+        & label::after {
+            content: "L";
+            font-weight: bold;
+        }
+        & input[type="checkbox"]:checked + label::after {
+            content: "H";
+        }
     }
 </style>

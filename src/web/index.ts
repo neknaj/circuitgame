@@ -34,7 +34,11 @@ async function initEditor() {
     var editor = ace.edit("editor");
     editor.setTheme("ace/theme/custom_theme"); // テーマの設定
     editor.session.setMode(new CustomMode());
-    editor.getSession().on('change',update);
+    editor.getSession().on('change',()=>{
+        if ((document.querySelector("#autoRun") as HTMLInputElement).checked) {
+            update();
+        }
+    });
     editor.setValue(await fetchTextFile("./sample.ncg"));
     editor.moveCursorTo(0, 0);
     editor.setFontSize(15);
@@ -155,11 +159,22 @@ async function run() {
         {
             vmArea: ()=>{return E("div",{id:"vm"},[])},
             graphArea: ()=>{return E("div",{id:"graph"},[])},
-            editArea: ()=>{return E("div",{id:"editor"},[])},
+            editArea: ()=>{
+                return E("div",{id:"editor_area"},[
+                    E("div",{id:""},[
+                        E("input",{type:"button",value:"run"},[]).Listen("click",update),
+                        E("span",{},[
+                            E("label",{for:"autoRun"},[T("auto run")]),
+                            E("input",{type:"checkbox",id:"autoRun"},[]),
+                        ]),
+                    ]),
+                    E("div",{id:"editor"},[]),
+                ])
+            },
         }
     )
     await initEditor();
-    // await initGraph();
+    update();
 }
 
 run();
