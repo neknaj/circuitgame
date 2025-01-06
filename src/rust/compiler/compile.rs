@@ -11,7 +11,6 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
     let mut expanded_modules: HashMap<String,CompiledModule> = std::collections::HashMap::new(); // 全てのゲートがnorだけで構成されているmodule
 
     for module_name in modules.iter().rev() {
-        println!("\n<< module_name: {} >>\n",module_name.cyan());
         if module_name=="nor" {
             expanded_modules.insert(module_name.clone(),CompiledModule {
                 inputs: 2,
@@ -31,7 +30,6 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
             Some(v) => v,
             None => {errors.push(format!("Undefined module used: {}",module_name));continue;}
         };
-        println!("module: {:?}",module);
         // 各ゲートのpointerを計算
         let mut gates_pointer = Vec::new();
         let mut gate_count = 0;
@@ -40,11 +38,9 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 Some(v) => v.clone(),
                 None => {errors.push(format!("Undefined gate used: {}",gate.module_name));continue;}
             };
-            // println!("gate {} : {:?}\n                 {:?}",&gate.module_name,gate,expanding_gate);
             gates_pointer.push(gate_count);
             gate_count += expanding_gate.gates.len() as u32;
         }
-        println!("gates_pointer: {:?}",gates_pointer);
         // gateのoutput名前とindexの対応表を作る
         let mut output_map = HashMap::new();
         let mut gate_index = 0;
@@ -53,11 +49,9 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 Some(v) => v.clone(),
                 None => {errors.push(format!("Undefined gate used: {}",gate.module_name));continue;}
             };
-            // println!("gate {} : {:?}\n                 {:?}",&gate.module_name,gate,expanding_gate);
             let mut output_index = 0;
             for output in expanding_gate.outputs.clone() {
                 let output_name = gate.outputs[output_index as usize].clone();
-                // println!("output_name: {} {}",output_name,output);
                 output_map.insert(output_name, CompiledGateInput::NorGate(output+gates_pointer[gate_index as usize]));
                 output_index+=1;
             }
@@ -69,7 +63,6 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
             output_map.insert(input,CompiledGateInput::Input(input_index));
             input_index+=1;
         }
-        println!("output_map: {:?}",output_map);
         // gateのinputsを解決しながら展開
         let mut expanded = Vec::new();
         gate_index = 0;
@@ -78,7 +71,6 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 Some(v) => v.clone(),
                 None => {errors.push(format!("Undefined gate used: {}",gate.module_name));continue;}
             };
-            println!("gate {} : {:?}\n                 {:?}",&gate.module_name,gate,expanding_gate);
             for egate in expanding_gate.gates.clone() {
                 let input0 = match egate.0 {
                     CompiledGateInput::NorGate(n) => CompiledGateInput::NorGate(n+gates_pointer[gate_index as usize]),
@@ -98,7 +90,6 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
             }
             gate_index+=1;
         }
-        println!("expanded: {:?}",expanded);
         // moduleのoutputを解決
         let mut outputs = Vec::new();
         for output in module.outputs.clone() {
@@ -113,7 +104,6 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
             };
             outputs.push(output_checked);
         }
-        println!("outputs: {:?}",outputs);
         // expanded_modulesに追加
         expanded_modules.insert(module_name.clone(),CompiledModule {
             inputs: module.inputs.len() as u32,

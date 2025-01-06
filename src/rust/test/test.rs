@@ -11,7 +11,6 @@ pub fn test_gates(
     for component in &product.ast.components {
         match component {
             crate::compiler::types::Component::Test(test)=>{ // Testのみ処理
-                // println!("< {:#?} >",&test.name);
                 // moduleの型を取得
                 let module_type = match module_type_list.iter().find(|m| m.name==test.name).map(|m| &m.mtype) {
                     Some(mtype) => mtype.clone(),
@@ -19,7 +18,6 @@ pub fn test_gates(
                 };
                 // patternがtypeに合致するかを確認
                 for pattern in &test.patterns {
-                    // println!("{:#?}",pattern);
                     if pattern.inputs.len()!=module_type.input_count||pattern.outputs.len()!=module_type.output_count {
                         errors.push(format!("Used module with unmatched type: {} expected {}->{} but got {}->{}",&test.name,module_type.input_count,module_type.output_count,pattern.inputs.len(),pattern.outputs.len()));
                     }
@@ -63,7 +61,6 @@ pub fn test_gates(
                         out_index+=1;
                     }
                     //
-                    // println!("test accepted: {}",!test_failed);
                     if test_failed {
                         errors.push(format!("Test failed: module {} input {:?}, expected {:?} but got {:?}",&test.name,pattern.inputs.clone(),pattern.outputs.clone(),output.clone()));
                     }

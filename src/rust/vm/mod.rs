@@ -42,7 +42,6 @@ impl Module {
     }
     /// gatesをn周更新する
     pub fn next(&mut self,n: u32) -> Result<u32, String> {
-        // println!("{:?}",gates.clone().into_iter().map(|b| if b { "1" } else { "0" }).collect::<Vec<_>>().join(""));
         for _ in 0..n {
             let mut gate_index = 0;
             for gate in &self.gates {
@@ -50,7 +49,6 @@ impl Module {
                 let input2 = *self.cond.get(gate.1 as usize).ok_or("gates access error")?;
                 let output = self.cond.get_mut(gate_index).ok_or("gates access error")?;
                 *output = !(input1||input2); // input1,input2のNORを計算する
-                // println!("{} = {} NOR {} // gate {}",!(input1||input2),input1,input2,gate_index);
                 gate_index+=1;
             }
             self.tick+=1;
