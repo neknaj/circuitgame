@@ -43,11 +43,16 @@ async function update() {
     const result = CompilerIntermediateProducts(input);
     console.log(result);
     console.log(result.module_dependency_sorted[0]);
-    const test_result = Test(input);
-    console.log(test_result);
-    for (let name of Object.keys(test_result.test_result)) {
-        console.log(`test: ${name}`);
-        console.table(test_result.test_result[name]);
+    try {
+        const test_result = Test(input);
+        console.log(test_result);
+        for (let name of Object.keys(test_result.test_result)) {
+            console.log(`test: ${name}`);
+            console.table(test_result.test_result[name]);
+        }
+    }
+    catch (e) {
+        console.error(e);
     }
     VMinit(document.querySelector("#vm"),result);
 }
