@@ -40,6 +40,10 @@ impl Module {
     pub fn get_gates(&self) -> GatesCond {
         self.cond.clone()
     }
+    /// 現在のtickを取得する
+    pub fn get_tick(&self) -> u32 {
+        self.tick
+    }
     /// gatesをn周更新する
     pub fn next(&mut self,n: u32) -> Result<u32, String> {
         for _ in 0..n {

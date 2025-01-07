@@ -122,6 +122,19 @@ pub fn export_VMgetGates(resource_id: u32) -> Vec<u32> {
         None=> return Vec::new()
     }
 }
+#[wasm_bindgen(js_name=VMgetTick)]
+pub fn export_VMgetTick(resource_id: u32) -> u32 {
+    let mut vmres = match VM_resource.lock() {
+        Ok(v)=>v,
+        Err(_)=> return 0
+    };
+    match vmres.get_resource(resource_id) {
+        Some(module)=> {
+            module.get_tick()
+        },
+        None=> return 0
+    }
+}
 #[wasm_bindgen(js_name=VMnext)]
 pub fn export_VMnext(resource_id: u32,n: u32) -> Result<u32,String> {
     let mut vmres = match VM_resource.lock() {

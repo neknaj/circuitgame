@@ -165,7 +165,7 @@ async function run() {
                         E("input",{type:"button",value:"run"},[]).Listen("click",update),
                         E("span",{},[
                             E("label",{for:"autoRun"},[T("auto run")]),
-                            E("input",{type:"checkbox",id:"autoRun"},[]),
+                            E("input",{type:"checkbox",id:"autoRun",checked:true},[]),
                         ]),
                     ]),
                     E("div",{id:"editor"},[]),
@@ -174,7 +174,7 @@ async function run() {
         }
     )
     await initEditor();
-    update();
+    // update();
 }
 
 run();

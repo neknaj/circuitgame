@@ -58,6 +58,8 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
             E("label",{for:"output"+i},[])
         ]),
     )));
+    elm.Add(E("h2",{},[T("tick")]));
+    elm.Add(E("p",{id:"tick"},[]));
     vm_id = VM.init(Compile(product.source,module_name));
     {
         const myEvent = new CustomEvent("moduleChanged", {
@@ -79,6 +81,7 @@ function updateOutput() {
     VM.next(vm_id,1);
     (Array.from(document.querySelectorAll(".output input")) as HTMLInputElement[])
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
+    (document.querySelector("#tick") as HTMLParagraphElement).innerText = `${VM.getTick(vm_id)}`;
     // グラフの色を反映
     {
         // console.log(document.querySelectorAll("#graph .node.input"))
