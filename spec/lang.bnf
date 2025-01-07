@@ -25,7 +25,7 @@
 <module> := <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
 <test> := <test_keyword> <mName> ":" <mType> "{" <testPatterns> "}"
 
-<gate> := <mIds> <gate_separator> <mName> <lArrow> <mIds> ";"
+<gate> := <mIds> <gate_separator> <mName> <lArrow>? <mIds> ";"
 <gates> := <gate> <gates> | ε
 
 <bool> := <true> | <false>
