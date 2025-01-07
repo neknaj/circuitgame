@@ -80,7 +80,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
 }
 
 function updateOutput() {
-    if (vm_id==null) { return; }
+    if (vm_id==null) { setTimeout(updateOutput,100);return; }
     // console.log(vm_id);
     input = Array.from(document.querySelectorAll(".input input"))
                 .map(e=>(e as HTMLInputElement).checked==true?1:0);
@@ -157,18 +157,21 @@ function updateOutput() {
     {
         const elm = document.querySelector("#graph2");
         const bound = elm.getBoundingClientRect();
-        const graph = createLogicAnalyzerGraph(waveData, waveLabels, bound.width, bound.height, 100);
+        const channelTypes = [...new Array(input.length).fill("input"),...new Array(VM.getOutput(vm_id).length).fill("output")];
+        const graph = createLogicAnalyzerGraph(waveData, waveLabels, channelTypes, bound.width, bound.height, 500);
         elm.innerHTML = "";
         elm.Add(graph);
     }
+    //
+    requestAnimationFrame(updateOutput);
 }
-setInterval(updateOutput, 100);
+updateOutput();
 
 export default init;
 
 
 
-const createLogicAnalyzerGraph = (data: number[][], labels: string[], width: number, height: number, lastN: number) => {
+const createLogicAnalyzerGraph = (data: number[][], labels: string[], channelTypes: ("input"|"output")[], width: number, height: number, lastN: number) => {
     lastN = Math.min(lastN,data[0].length);
 
     const svgNS = "http://www.w3.org/2000/svg";
@@ -182,7 +185,7 @@ const createLogicAnalyzerGraph = (data: number[][], labels: string[], width: num
 
     // Parameters
     const numChannels = data.length;
-    const channelHeight = height / numChannels;
+    const channelHeight = (height - 20) / numChannels;
     const stepWidth = (width - 120) / lastN; // Leave space for labels on the left
 
     // Trim data to show only the last N steps
@@ -192,48 +195,52 @@ const createLogicAnalyzerGraph = (data: number[][], labels: string[], width: num
     labels.forEach((label, index) => {
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", "10");
-        text.setAttribute("y", (channelHeight * (index + 0.5)).toString());
+        text.setAttribute("y", (20 + channelHeight * (index + 0.3)).toString());
         text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("fill", "white");
-        text.setAttribute("font-size", "15");
+        text.setAttribute("font-size", "20");
         text.textContent = label;
         svg.appendChild(text);
     });
 
     // Create waveforms for each channel
-    trimmedData.forEach((channelData, channelIndex) => {
-        const path = document.createElementNS(svgNS, "path");
-        let d = "";
-        let currentY = channelHeight * (channelIndex + 0.5);
+    function drawPath(color) {
+        return (channelData, channelIndex) => {
+            const path = document.createElementNS(svgNS, "path");
+            let d = "";
+            let currentY = 20 + channelHeight * (channelIndex + 0.3);
 
-        channelData.forEach((value, index) => {
-            const x = 100 + index * stepWidth;
-            const y = currentY + (value ? -channelHeight / 4 : channelHeight / 4);
-            if (index === 0) {
-                d += `M ${x} ${y} `; // Move to the first point
-            } else {
-                d += `L ${x} ${y} `; // Line to next point
-            }
-            if (index < channelData.length - 1) {
-                // 立上がりと立下りが斜めになるようにする
-                const nextY = currentY + (channelData[index + 1] ? -channelHeight / 4 : channelHeight / 4);
-                d += `H ${x + stepWidth*0.7} `;
-                d += `L ${x + stepWidth} ${nextY} `;
-            }
-        });
+            channelData.forEach((value, index) => {
+                const x = 100 + index * stepWidth;
+                const y = currentY + (value ? -channelHeight / 8 : channelHeight / 8);
+                if (index === 0) {
+                    d += `M ${x} ${y} `; // Move to the first point
+                } else {
+                    d += `L ${x} ${y} `; // Line to next point
+                }
+                if (index < channelData.length - 1) {
+                    // 立上がりと立下りが斜めになるようにする
+                    const nextY = currentY + (channelData[index + 1] ? -channelHeight / 8 : channelHeight / 8);
+                    d += `H ${x + stepWidth*0.2} `;
+                    d += `L ${x + stepWidth} ${nextY} `;
+                }
+            });
 
-        path.setAttribute("d", d.trim());
-        path.setAttribute("fill", "none");
-        path.setAttribute("stroke", "#08f");
-        path.setAttribute("stroke-width", "2");
-        svg.appendChild(path);
-    });
+            path.setAttribute("d", d.trim());
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", color(channelIndex));
+            path.setAttribute("stroke-width", "2");
+            svg.appendChild(path);
+        }
+    }
+    trimmedData.map(a=>a.map(x=>1-x)).forEach(drawPath(i=>channelTypes[i]=="input"?"#045":"#540"));
+    trimmedData.forEach(drawPath(i=>channelTypes[i]=="input"?"#09f":"#f90"));
 
     // Add vertical lines and time labels
     const numSteps = trimmedData[0].length;
     const startIndex = data[0].length - lastN; // Adjust starting index for time labels
     for (let i = 0; i < numSteps; i++) {
-        if ((startIndex + i) % 10 === 0) {
+        if ((startIndex + i) % 100 === 0) {
             const x = 100 + i * stepWidth;
 
             // Vertical line
@@ -261,12 +268,3 @@ const createLogicAnalyzerGraph = (data: number[][], labels: string[], width: num
 
     return svg;
 };
-
-
-// Example data
-const exampleData = [
-    [0, 1, 0, 1, 1, 0, 0, 1], // Channel 1
-    [1, 1, 0, 0, 1, 1, 0, 0], // Channel 2
-    [0, 0, 1, 1, 0, 1, 1, 0], // Channel 3
-];
-const exampleLabels = ["in0", "in1", "out0", "out1"];
