@@ -4,9 +4,9 @@ import { IntermediateProducts, CompiledModule, CompiledGateInput, Module } from 
 
 let vm_id = null;
 let selected = null;
-let input = [];
 let compiledModule: CompiledModule;
-let waveData = [];
+let input: (0|1)[] = [];
+let waveData: (0|1)[][] = []; // 0 or 1
 let waveLabels = [];
 
 function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: string = null) {
@@ -46,7 +46,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         (_,i) => E("span",{},[
             (() => {
                 let inputElm = E("input",{type:"checkbox",id:"input"+i},[])
-                if (input.length==moduleType.mtype.input_count&&input[i]==true) {
+                if (input.length==moduleType.mtype.input_count&&input[i]==1) {
                     inputElm.setAttribute("checked","true");
                 }
                 return inputElm;
@@ -83,15 +83,15 @@ function updateOutput() {
     if (vm_id==null) { return; }
     // console.log(vm_id);
     input = Array.from(document.querySelectorAll(".input input"))
-                .map(e=>(e as HTMLInputElement).checked)
-    input.forEach((v,i)=>VM.set(vm_id,i,v));
+                .map(e=>(e as HTMLInputElement).checked==true?1:0);
+    input.forEach((v,i)=>VM.set(vm_id,i,v==1));
     VM.next(vm_id,1);
     (Array.from(document.querySelectorAll(".output input")) as HTMLInputElement[])
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
     (document.querySelector("#tick") as HTMLParagraphElement).innerText = `${VM.getTick(vm_id)}`;
     {
         input.forEach((v,i)=>{waveData[i].push(v)})
-        Array.from(VM.getOutput(vm_id)).forEach((v,i)=>{waveData[i+input.length].push(v)})
+        Array.from(VM.getOutput(vm_id)).map(x=>x==1?1:0).forEach((v,i)=>{waveData[i+input.length].push(v)})
     }
     // グラフの色を反映
     {
@@ -142,7 +142,7 @@ function updateOutput() {
                 active = gate[wires[i].NorGate];
             }
             else {
-                active = input[wires[i].Input];
+                active = input[wires[i].Input]==1;
             }
             if (active) {
                 node.classList.add("active");
