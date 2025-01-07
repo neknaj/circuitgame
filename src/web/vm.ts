@@ -1,5 +1,5 @@
 import { Compile, VM } from './circuitgame.js';
-import { elm as E, textelm as T, textelm } from './cdom.js';
+import { elm as E, textelm as T } from './cdom.js';
 import { IntermediateProducts, CompiledModule, CompiledGateInput, Module } from './types.js';
 
 let vm_id = null;
@@ -16,13 +16,13 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         if (selected == null) { selected = product.module_dependency_sorted[0]; }
         module_name = selected;
     }
-    const modulesAST = (product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module);
+    const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
     elm.innerHTML = "";
     console.log("module",module_name,selected);
     // module選択のドロップダウンメニューを追加
     elm.Add(E("select",{},product.module_dependency_sorted.map(
         (m,i) => {
-            let option = E("option",{value:m},[textelm(m)]);
+            let option = E("option",{value:m},[T(m)]);
             if (m==selected) { option.setAttribute("selected","true"); }
             return option;
         }
@@ -40,8 +40,8 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     console.log(Compile(product.source,module_name));
     const moduleType = product.module_type_list.filter(m=>m.name==module_name)[0];
     console.log(moduleType);
-    elm.Add(E("h1",{},[textelm(module_name)]));
-    elm.Add(E("h2",{},[textelm("input")]));
+    elm.Add(E("h1",{},[T(module_name)]));
+    elm.Add(E("h2",{},[T("input")]));
     elm.Add(E("div",{class:"input"},Array(moduleType.mtype.input_count).fill(0).map(
         (_,i) => E("span",{},[
             (() => {
@@ -51,14 +51,15 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
                 }
                 return inputElm;
             })(),
-            E("label",{for:"input"+i},[])
+            E("label",{for:"input"+i},[T(modulesAST.inputs[i])])
         ]),
     )));
-    elm.Add(E("h2",{},[textelm("output")]));
+    console.log(modulesAST)
+    elm.Add(E("h2",{},[T("output")]));
     elm.Add(E("div",{class:"output"},Array(moduleType.mtype.output_count).fill(0).map(
         (_,i) => E("span",{},[
             E("input",{type:"checkbox",id:"output"+i,disabled:true},[]),
-            E("label",{for:"output"+i},[])
+            E("label",{for:"output"+i},[T(modulesAST.outputs[i])])
         ]),
     )));
     elm.Add(E("h2",{},[T("tick")]));
@@ -81,6 +82,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
 
 function updateOutput() {
     if (vm_id==null) { setTimeout(updateOutput,100);return; }
+    requestAnimationFrame(updateOutput);
     // console.log(vm_id);
     input = Array.from(document.querySelectorAll(".input input"))
                 .map(e=>(e as HTMLInputElement).checked==true?1:0);
@@ -162,8 +164,6 @@ function updateOutput() {
         elm.innerHTML = "";
         elm.Add(graph);
     }
-    //
-    requestAnimationFrame(updateOutput);
 }
 updateOutput();
 
@@ -195,7 +195,7 @@ const createLogicAnalyzerGraph = (data: number[][], labels: string[], channelTyp
     labels.forEach((label, index) => {
         const text = document.createElementNS(svgNS, "text");
         text.setAttribute("x", "10");
-        text.setAttribute("y", (20 + channelHeight * (index + 0.3)).toString());
+        text.setAttribute("y", (30 + channelHeight * (index + 0.3)).toString());
         text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("fill", "white");
         text.setAttribute("font-size", "20");
@@ -208,7 +208,7 @@ const createLogicAnalyzerGraph = (data: number[][], labels: string[], channelTyp
         return (channelData, channelIndex) => {
             const path = document.createElementNS(svgNS, "path");
             let d = "";
-            let currentY = 20 + channelHeight * (channelIndex + 0.3);
+            let currentY = 30 + channelHeight * (channelIndex + 0.3);
 
             channelData.forEach((value, index) => {
                 const x = 100 + index * stepWidth;

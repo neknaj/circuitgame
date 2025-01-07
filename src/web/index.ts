@@ -121,7 +121,8 @@ ${output_wires}
 import { Module } from './types.js';
 function constructGraph(product: IntermediateProducts,module_name: string,offset: number=0,subgraph=0): [string,number,number] {
     if (module_name=="nor") { return [`nor${offset}\n`,offset+1,subgraph]; }
-    const gates = (product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module).gates;
+    const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
+    const gates = modulesAST.gates;
     console.log(gates,module_name)
     let result = "";
     for (let gate of gates) {
