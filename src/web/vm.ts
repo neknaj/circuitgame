@@ -1,11 +1,13 @@
 import { Compile, VM } from './circuitgame.js';
 import { elm as E, textelm as T, textelm } from './cdom.js';
-import { IntermediateProducts, CompiledModule, CompiledGateInput } from './types.js';
+import { IntermediateProducts, CompiledModule, CompiledGateInput, Module } from './types.js';
 
 let vm_id = null;
 let selected = null;
 let input = [];
 let compiledModule: CompiledModule;
+let waveData = [];
+let waveLabels = [];
 
 function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: string = null) {
     if (module_name!=null&&product.module_dependency_sorted.includes(module_name)==false) { module_name = null; }
@@ -14,6 +16,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         if (selected == null) { selected = product.module_dependency_sorted[0]; }
         module_name = selected;
     }
+    const modulesAST = (product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module);
     elm.innerHTML = "";
     console.log("module",module_name,selected);
     // module選択のドロップダウンメニューを追加
@@ -69,7 +72,11 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         });
         elm.dispatchEvent(myEvent);
     }
-    compiledModule = product.expanded_modules[module_name];
+    {
+        compiledModule = product.expanded_modules[module_name];
+        waveData = new Array(moduleType.mtype.input_count+moduleType.mtype.output_count).fill(0).map(x=>[]);
+        waveLabels = [...modulesAST.inputs,...modulesAST.outputs];
+    }
 }
 
 function updateOutput() {
@@ -82,10 +89,14 @@ function updateOutput() {
     (Array.from(document.querySelectorAll(".output input")) as HTMLInputElement[])
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
     (document.querySelector("#tick") as HTMLParagraphElement).innerText = `${VM.getTick(vm_id)}`;
+    {
+        input.forEach((v,i)=>{waveData[i].push(v)})
+        Array.from(VM.getOutput(vm_id)).forEach((v,i)=>{waveData[i+input.length].push(v)})
+    }
     // グラフの色を反映
     {
         // console.log(document.querySelectorAll("#graph .node.input"))
-        document.querySelectorAll("#graph .node.input").forEach((node,i)=>{
+        document.querySelectorAll("#graph1 .node.input").forEach((node,i)=>{
             // console.log("input",node,input[i],i,input)
             if (input[i]) {
                 node.classList.add("active");
@@ -97,7 +108,7 @@ function updateOutput() {
     }
     {
         const gate = Array.from(VM.getGates(vm_id)).map(v=>v==1);
-        document.querySelectorAll("#graph .node.gate").forEach((node,i)=>{
+        document.querySelectorAll("#graph1 .node.gate").forEach((node,i)=>{
             if (gate[i]) {
                 node.classList.add("active");
             }
@@ -108,7 +119,7 @@ function updateOutput() {
     }
     {
         const gate = Array.from(VM.getOutput(vm_id)).map(v=>v==1);
-        document.querySelectorAll("#graph .node.output").forEach((node,i)=>{
+        document.querySelectorAll("#graph1 .node.output").forEach((node,i)=>{
             if (gate[i]) {
                 node.classList.add("active");
             }
@@ -124,7 +135,7 @@ function updateOutput() {
         const wires = compiledModule.gates.flat(1).concat(compiledModule.outputs.map(x=>({NorGate:x} as CompiledGateInput)));
         // console.log(wires)
         // console.log(document.querySelectorAll("#graph .edgePaths path"))
-        document.querySelectorAll("#graph .edgePaths path").forEach((node,i)=>{
+        document.querySelectorAll("#graph1 .edgePaths path").forEach((node,i)=>{
             let active = false;
             // console.log(wires[i])
             if ("NorGate" in wires[i]) {
@@ -141,7 +152,118 @@ function updateOutput() {
             }
         });
     }
+
+    // ロジアナグラフ
+    {
+        const elm = document.querySelector("#graph2");
+        const bound = elm.getBoundingClientRect();
+        const graph = createLogicAnalyzerGraph(waveData, waveLabels, bound.width, bound.height, 100);
+        elm.innerHTML = "";
+        elm.Add(graph);
+    }
 }
-setInterval(updateOutput, 10);
+setInterval(updateOutput, 100);
 
 export default init;
+
+
+
+const createLogicAnalyzerGraph = (data: number[][], labels: string[], width: number, height: number, lastN: number) => {
+    lastN = Math.min(lastN,data[0].length);
+
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    // Create SVG element
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("width", width.toString());
+    svg.setAttribute("height", height.toString());
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("style", "border: 1px solid black;");
+
+    // Parameters
+    const numChannels = data.length;
+    const channelHeight = height / numChannels;
+    const stepWidth = (width - 120) / lastN; // Leave space for labels on the left
+
+    // Trim data to show only the last N steps
+    const trimmedData = data.map(channel => channel.slice(-lastN));
+
+    // Add channel labels
+    labels.forEach((label, index) => {
+        const text = document.createElementNS(svgNS, "text");
+        text.setAttribute("x", "10");
+        text.setAttribute("y", (channelHeight * (index + 0.5)).toString());
+        text.setAttribute("dominant-baseline", "middle");
+        text.setAttribute("fill", "white");
+        text.setAttribute("font-size", "15");
+        text.textContent = label;
+        svg.appendChild(text);
+    });
+
+    // Create waveforms for each channel
+    trimmedData.forEach((channelData, channelIndex) => {
+        const path = document.createElementNS(svgNS, "path");
+        let d = "";
+        let currentY = channelHeight * (channelIndex + 0.5);
+
+        channelData.forEach((value, index) => {
+            const x = 100 + index * stepWidth;
+            const y = currentY + (value ? -channelHeight / 4 : channelHeight / 4);
+            if (index === 0) {
+                d += `M ${x} ${y} `; // Move to the first point
+            } else {
+                d += `L ${x} ${y} `; // Line to next point
+            }
+            if (index < channelData.length - 1) {
+                d += `H ${x + stepWidth} `; // Horizontal line
+            }
+        });
+
+        path.setAttribute("d", d.trim());
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#05f");
+        path.setAttribute("stroke-width", "2");
+        svg.appendChild(path);
+    });
+
+    // Add vertical lines and time labels
+    const numSteps = trimmedData[0].length;
+    const startIndex = data[0].length - lastN; // Adjust starting index for time labels
+    for (let i = 0; i < numSteps; i++) {
+        if ((startIndex + i) % 10 === 0) {
+            const x = 100 + i * stepWidth;
+
+            // Vertical line
+            const line = document.createElementNS(svgNS, "line");
+            line.setAttribute("x1", x.toString());
+            line.setAttribute("y1", "20");
+            line.setAttribute("x2", x.toString());
+            line.setAttribute("y2", height.toString());
+            line.setAttribute("stroke", "gray");
+            line.setAttribute("stroke-width", "1");
+            line.setAttribute("stroke-dasharray", "4");
+            svg.appendChild(line);
+
+            // Time label
+            const text = document.createElementNS(svgNS, "text");
+            text.setAttribute("x", x.toString());
+            text.setAttribute("y", "14");
+            text.setAttribute("font-size", "13");
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("fill", "gray");
+            text.textContent = (startIndex + i).toString();
+            svg.appendChild(text);
+        }
+    }
+
+    return svg;
+};
+
+
+// Example data
+const exampleData = [
+    [0, 1, 0, 1, 1, 0, 0, 1], // Channel 1
+    [1, 1, 0, 0, 1, 1, 0, 0], // Channel 2
+    [0, 0, 1, 1, 0, 1, 1, 0], // Channel 3
+];
+const exampleLabels = ["in0", "in1", "out0", "out1"];

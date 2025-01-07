@@ -109,7 +109,7 @@ ${wires}
 ${output_wires}
         `;
         console.log(graphDefinition);
-        const elm = document.querySelector("#graph");
+        const elm = document.querySelector("#graph1");
         // console.log(elm);
         const res = await mermaid.render("mermaidGraph", graphDefinition);
         // console.log(res)
@@ -150,15 +150,19 @@ async function run() {
     initlayout(
         document.querySelector("#layoutroot"),
         ["h",[3,1],[
-            ["h",[1,3],[
-                ["c","vmArea"],
-                ["c","graphArea"],
+            ["v",[2,1],[
+                ["h",[1,3],[
+                    ["c","vmArea"],
+                    ["c","graph1Area"],
+                ]],
+                ["c","graph2Area"],
             ]],
             ["c","editArea"],
         ]],
         {
             vmArea: ()=>{return E("div",{id:"vm"},[])},
-            graphArea: ()=>{return E("div",{id:"graph"},[])},
+            graph1Area: ()=>{return E("div",{id:"graph1"},[])},
+            graph2Area: ()=>{return E("div",{id:"graph2"},[])},
             editArea: ()=>{
                 return E("div",{id:"editor_area"},[
                     E("div",{id:""},[

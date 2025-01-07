@@ -36,10 +36,10 @@
         height: calc(100% - 30px);
     }
     #editor_area {
-        height: 100%;
+        height: calc(100% - 5px);
     }
 
-    #graph {
+    #graph1 {
         & .nodes .active rect {
             fill: #045507 !important;
         }
@@ -61,6 +61,10 @@
                 stroke: #587156 !important;
             }
         }
+    }
+
+    #graph2 {
+        height: 100%;
     }
 
     #vm {
