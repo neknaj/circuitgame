@@ -215,13 +215,16 @@ const createLogicAnalyzerGraph = (data: number[][], labels: string[], width: num
                 d += `L ${x} ${y} `; // Line to next point
             }
             if (index < channelData.length - 1) {
-                d += `H ${x + stepWidth} `; // Horizontal line
+                // 立上がりと立下りが斜めになるようにする
+                const nextY = currentY + (channelData[index + 1] ? -channelHeight / 4 : channelHeight / 4);
+                d += `H ${x + stepWidth*0.7} `;
+                d += `L ${x + stepWidth} ${nextY} `;
             }
         });
 
         path.setAttribute("d", d.trim());
         path.setAttribute("fill", "none");
-        path.setAttribute("stroke", "#05f");
+        path.setAttribute("stroke", "#08f");
         path.setAttribute("stroke-width", "2");
         svg.appendChild(path);
     });
