@@ -1,6 +1,6 @@
 import init, { Compile, CompilerIntermediateProducts, Test, IntermediateProducts } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
-import VMinit from './vm.js';
+import VMinit, { tick } from './vm.js';
 
 import ace from "ace-builds/src-noconflict/ace";
 import { CustomMode, darkTheme } from "./editor.mode.js";
@@ -200,6 +200,9 @@ async function run() {
                 E("div",{class:"prop"},[
                     E("input",{type:"checkbox",id:"vmRun",checked:true},[]),
                     E("label",{for:"vmRun"},[T("run")]),
+                ]),
+                E("div",{class:"prop"},[
+                    E("button",{},[T("tick")]).Listen("click",tick),
                 ]),
             ]),
         }

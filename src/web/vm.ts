@@ -78,11 +78,9 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     }
 }
 
-function updateOutput() {
-    if (vm_id==null) { setTimeout(updateOutput,100);return; }
-    if (!(document.querySelector("#vmRun") as HTMLInputElement).checked) { setTimeout(updateOutput,100);return; }
-    requestAnimationFrame(updateOutput);
-    // console.log(vm_id);
+// 1tick進める
+export function tick() {
+    console.log("tick")
     input = Array.from(document.querySelectorAll(".input input"))
                 .map(e=>(e as HTMLInputElement).checked==true?1:0);
     input.forEach((v,i)=>VM.set(vm_id,i,v==1));
@@ -108,7 +106,15 @@ function updateOutput() {
         changeGraphColors();
     }
 }
-updateOutput();
+
+function autoUpdate() {
+    if (vm_id==null) { setTimeout(autoUpdate,100);return; }
+    if (!(document.querySelector("#vmRun") as HTMLInputElement).checked) { setTimeout(autoUpdate,100);return; }
+    requestAnimationFrame(autoUpdate);
+
+    tick();
+}
+autoUpdate();
 
 export default init;
 
