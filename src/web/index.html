@@ -82,33 +82,46 @@
     }
 
     #vm {
-        & input[type="checkbox"] {
-            display: none;
+        & div {
+            height: fit-content;
         }
+    }
 
-        & label {
-            display: inline-block;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 18px;
-            background-color: #000000;
-            border: 2px solid #878787;
-            border-radius: 5px;
-            transition: background-color 0.1s, border-color 0.1s;
-            user-select: none;
-            min-width: 30px;
+    #vm_ctrl_area {
+        &>div {
+            margin: 5px;
+            padding: 5px;
         }
+    }
+</style>
+<style>
+    input[type="checkbox"] {
+        display: none;
+    }
 
-        & input[type="checkbox"]:checked + label {
-            background-color: #045507;
-            color: white;
-        }
+    label {
+        display: inline-block;
+        padding: 0px 10px;
+        margin: 0;
+        cursor: pointer;
+        background-color: #000000;
+        border: 1px solid #878787;
+        border-radius: 5px;
+        transition: background-color 0.1s, border-color 0.1s;
+        user-select: none;
+        min-width: 30px;
+        height: fit-content;
+    }
 
-        & label:hover {
-            background-color: #272727;
-        }
-        & input[type="checkbox"]:checked + label:hover {
-            background-color: #033c05;
-        }
+    input[type="checkbox"]:checked + label {
+        background-color: #045507;
+        color: white;
+    }
+
+    label:hover {
+        background-color: #272727;
+    }
+    input[type="checkbox"]:checked + label:hover {
+        background-color: #033c05;
     }
 </style>

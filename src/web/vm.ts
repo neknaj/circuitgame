@@ -62,8 +62,6 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
             E("label",{for:"output"+i},[T(modulesAST.outputs[i])])
         ]),
     )));
-    elm.Add(E("h2",{},[T("tick")]));
-    elm.Add(E("p",{id:"tick"},[]));
     vm_id = VM.init(Compile(product.source,module_name));
     {
         const myEvent = new CustomEvent("moduleChanged", {
@@ -82,6 +80,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
 
 function updateOutput() {
     if (vm_id==null) { setTimeout(updateOutput,100);return; }
+    if (!(document.querySelector("#vmRun") as HTMLInputElement).checked) { setTimeout(updateOutput,100);return; }
     requestAnimationFrame(updateOutput);
     // console.log(vm_id);
     input = Array.from(document.querySelectorAll(".input input"))

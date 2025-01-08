@@ -35,7 +35,7 @@ async function initEditor() {
     editor.setTheme("ace/theme/custom_theme"); // テーマの設定
     editor.session.setMode(new CustomMode());
     editor.getSession().on('change',()=>{
-        if ((document.querySelector("#autoRun") as HTMLInputElement).checked) {
+        if ((document.querySelector("#autoCompile") as HTMLInputElement).checked) {
             update();
         }
     });
@@ -115,7 +115,6 @@ ${output_wires}
         // console.log(res)
         elm.innerHTML = res.svg;
     }
-    constructGraph(product,"and",0);
 }
 
 import { Module } from './types.js';
@@ -153,7 +152,10 @@ async function run() {
         ["h",[3,1],[
             ["v",[2,1],[
                 ["h",[1,3],[
-                    ["c","vmArea"],
+                    ["v",[2,1],[
+                        ["c","vmArea"],
+                        ["c","vmCtrlArea"],
+                    ]],
                     ["c","graph1Area"],
                 ]],
                 ["c","graph2Area"],
@@ -164,18 +166,26 @@ async function run() {
             vmArea: ()=>{return E("div",{id:"vm"},[])},
             graph1Area: ()=>{return E("div",{id:"graph1"},[])},
             graph2Area: ()=>{return E("div",{id:"graph2"},[])},
-            editArea: ()=>{
-                return E("div",{id:"editor_area"},[
-                    E("div",{id:""},[
-                        E("input",{type:"button",value:"run"},[]).Listen("click",update),
-                        E("span",{},[
-                            E("label",{for:"autoRun"},[T("auto run")]),
-                            E("input",{type:"checkbox",id:"autoRun",checked:true},[]),
-                        ]),
+            editArea: ()=>E("div",{id:"editor_area"},[
+                E("div",{id:""},[
+                    E("input",{type:"button",value:"compile"},[]).Listen("click",update),
+                    E("span",{},[
+                        E("input",{type:"checkbox",id:"autoCompile",checked:true},[]),
+                        E("label",{for:"autoCompile"},[T("auto compile")]),
                     ]),
-                    E("div",{id:"editor"},[]),
-                ])
-            },
+                ]),
+                E("div",{id:"editor"},[]),
+            ]),
+            vmCtrlArea: ()=>E("div",{id:"vm_ctrl_area"},[
+                E("div",{class:"prop"},[
+                    E("span",{},[T("tick: ")]),
+                    E("span",{id:"tick"},[]),
+                ]),
+                E("div",{class:"prop"},[
+                    E("input",{type:"checkbox",id:"vmRun",checked:true},[]),
+                    E("label",{for:"vmRun"},[T("run")]),
+                ]),
+            ]),
         }
     )
     await initEditor();
