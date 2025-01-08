@@ -1,6 +1,6 @@
 import init, { Compile, CompilerIntermediateProducts, Test, IntermediateProducts } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
-import VMinit, { tick } from './vm.js';
+import VMinit, { tick, updateLogiAnaGraph } from './vm.js';
 
 import ace from "ace-builds/src-noconflict/ace";
 import { CustomMode, darkTheme } from "./editor.mode.js";
@@ -204,9 +204,19 @@ async function run() {
                 E("div",{class:"prop"},[
                     E("button",{},[T("tick")]).Listen("click",tick),
                 ]),
+                E("div",{class:"prop"},[
+                    E("label",{for:"digiAnaLastN",id:"digiAnaLastN_label"},[]),
+                    E("input",{type:"range",id:"digiAnaLastN",min:20,max:2000,step:1,value:100},[]).Listen("input",()=>{
+                        (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;
+                        updateLogiAnaGraph();
+                    }),
+                ]),
             ]),
         }
     )
+    {
+        (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;
+    }
     await initEditor();
     // update();
 }

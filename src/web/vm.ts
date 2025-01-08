@@ -92,19 +92,21 @@ export function tick() {
     {
         input.forEach((v,i)=>{waveData[i].push(v)})
         Array.from(VM.getOutput(vm_id)).map(x=>x==1?1:0).forEach((v,i)=>{waveData[i+input.length].push(v)})
-    }
-    {
-        const elm = document.querySelector("#graph2");
-        const bound = elm.getBoundingClientRect();
-        const channelTypes = [...new Array(input.length).fill("input"),...new Array(VM.getOutput(vm_id).length).fill("output")];
-        const graph = createLogicAnalyzerGraph(waveData, waveLabels, channelTypes, bound.width, bound.height, 500);
-        elm.innerHTML = "";
-        elm.Add(graph);
+        updateLogiAnaGraph();
     }
     // グラフの色を反映
     if ((document.querySelector("#graph1_switch") as HTMLInputElement).checked) {
         changeGraphColors();
     }
+}
+
+export function updateLogiAnaGraph() {
+    const elm = document.querySelector("#graph2");
+    const bound = elm.getBoundingClientRect();
+    const channelTypes = [...new Array(input.length).fill("input"),...new Array(VM.getOutput(vm_id).length).fill("output")];
+    const graph = createLogicAnalyzerGraph(waveData, waveLabels, channelTypes, bound.width, bound.height, Number((document.querySelector("#digiAnaLastN") as HTMLInputElement).value));
+    elm.innerHTML = "";
+    elm.Add(graph);
 }
 
 function autoUpdate() {
@@ -204,11 +206,11 @@ function createLogicAnalyzerGraph(data: number[][], labels: string[], channelTyp
     // Add channel labels
     labels.forEach((label, index) => {
         const text = document.createElementNS(svgNS, "text");
-        text.setAttribute("x", "10");
+        text.setAttribute("x", "15");
         text.setAttribute("y", (30 + channelHeight * (index + 0.3)).toString());
         text.setAttribute("dominant-baseline", "middle");
         text.setAttribute("fill", "white");
-        text.setAttribute("font-size", "20");
+        text.setAttribute("font-size", "22");
         text.textContent = label;
         svg.appendChild(text);
     });
@@ -250,7 +252,7 @@ function createLogicAnalyzerGraph(data: number[][], labels: string[], channelTyp
     const numSteps = trimmedData[0].length;
     const startIndex = data[0].length - lastN; // Adjust starting index for time labels
     for (let i = 0; i < numSteps; i++) {
-        if ((startIndex + i) % 100 === 0) {
+        if ((startIndex + i) % Math.floor(lastN/20) === 0) {
             const x = 100 + i * stepWidth;
 
             // Vertical line
