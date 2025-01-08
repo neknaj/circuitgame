@@ -90,10 +90,30 @@ function updateOutput() {
     (Array.from(document.querySelectorAll(".output input")) as HTMLInputElement[])
         .forEach((e,i)=>e.checked = VM.getOutput(vm_id)[i]==1?true:false);
     (document.querySelector("#tick") as HTMLParagraphElement).innerText = `${VM.getTick(vm_id)}`;
+    // ロジアナグラフ
     {
         input.forEach((v,i)=>{waveData[i].push(v)})
         Array.from(VM.getOutput(vm_id)).map(x=>x==1?1:0).forEach((v,i)=>{waveData[i+input.length].push(v)})
     }
+    {
+        const elm = document.querySelector("#graph2");
+        const bound = elm.getBoundingClientRect();
+        const channelTypes = [...new Array(input.length).fill("input"),...new Array(VM.getOutput(vm_id).length).fill("output")];
+        const graph = createLogicAnalyzerGraph(waveData, waveLabels, channelTypes, bound.width, bound.height, 500);
+        elm.innerHTML = "";
+        elm.Add(graph);
+    }
+    // グラフの色を反映
+    if ((document.querySelector("#graph1_switch") as HTMLInputElement).checked) {
+        changeGraphColors();
+    }
+}
+updateOutput();
+
+export default init;
+
+
+function changeGraphColors() {
     // グラフの色を反映
     {
         // console.log(document.querySelectorAll("#graph .node.input"))
@@ -130,7 +150,6 @@ function updateOutput() {
         });
     }
     // ワイヤーの色
-
     {
         const gate = Array.from(VM.getGates(vm_id)).map(v=>v==1);
         const wires = compiledModule.gates.flat(1).concat(compiledModule.outputs.map(x=>({NorGate:x} as CompiledGateInput)));
@@ -153,24 +172,10 @@ function updateOutput() {
             }
         });
     }
-
-    // ロジアナグラフ
-    {
-        const elm = document.querySelector("#graph2");
-        const bound = elm.getBoundingClientRect();
-        const channelTypes = [...new Array(input.length).fill("input"),...new Array(VM.getOutput(vm_id).length).fill("output")];
-        const graph = createLogicAnalyzerGraph(waveData, waveLabels, channelTypes, bound.width, bound.height, 500);
-        elm.innerHTML = "";
-        elm.Add(graph);
-    }
 }
-updateOutput();
-
-export default init;
 
 
-
-const createLogicAnalyzerGraph = (data: number[][], labels: string[], channelTypes: ("input"|"output")[], width: number, height: number, lastN: number) => {
+function createLogicAnalyzerGraph(data: number[][], labels: string[], channelTypes: ("input"|"output")[], width: number, height: number, lastN: number) {
     lastN = Math.min(lastN,data[0].length);
 
     const svgNS = "http://www.w3.org/2000/svg";

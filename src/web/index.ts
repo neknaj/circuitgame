@@ -64,11 +64,15 @@ async function update() {
     VMinit(document.querySelector("#vm"),result);
 }
 
+
+let graphModuleData: { module_name: string, product: IntermediateProducts };
 document.addEventListener("moduleChanged", (event) => {
     console.log(event);
     if ("detail" in event) {
-        let data = event.detail as { module_name: string, product: IntermediateProducts };
-        upadteGraph(data.product,data.module_name);
+        graphModuleData = event.detail as { module_name: string, product: IntermediateProducts };
+        if ((document.querySelector("#graph1_switch") as HTMLInputElement).checked) {
+            upadteGraph(graphModuleData.product,graphModuleData.module_name);
+        }
     }
 });
 async function upadteGraph(product: IntermediateProducts,module_name: string) {
@@ -177,6 +181,18 @@ async function run() {
                 E("div",{id:"editor"},[]),
             ]),
             vmCtrlArea: ()=>E("div",{id:"vm_ctrl_area"},[
+                E("div",{class:"prop"},[
+                    E("input",{type:"checkbox",id:"graph1_switch",checked:true},[]).Listen("change",()=>{
+                        if ((document.querySelector("#graph1_switch") as HTMLInputElement).checked) {
+                            upadteGraph(graphModuleData.product,graphModuleData.module_name);
+                        }
+                        else {
+                            document.querySelector("#graph1").innerHTML = "";
+                            document.querySelector("#graph1").Add(E("p",{},[T("This graph is disabled.")]));
+                        }
+                    }),
+                    E("label",{for:"graph1_switch"},[T("graph")]),
+                ]),
                 E("div",{class:"prop"},[
                     E("span",{},[T("tick: ")]),
                     E("span",{id:"tick"},[]),
