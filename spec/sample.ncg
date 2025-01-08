@@ -80,6 +80,21 @@ module d_latch (d clk)->(q nq) {
     q nq: sr_latch <- s r;
 }
 
+// クロック回路
+
+module clock()->(a) {
+    a: buf b;
+    b: not a;
+}
+
+// インパルス
+
+module impulse()->(c) {
+    c: not a;
+    a: not b;
+    b: not a;
+}
+
 
 //
 // テストを定義する
