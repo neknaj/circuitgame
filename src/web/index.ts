@@ -191,7 +191,17 @@ async function run() {
                             document.querySelector("#graph1").Add(E("p",{},[T("This graph is disabled.")]));
                         }
                     }),
-                    E("label",{for:"graph1_switch"},[T("graph")]),
+                    E("label",{for:"graph1_switch"},[T("graph1")]),
+                    E("input",{type:"checkbox",id:"graph2_switch",checked:true},[]).Listen("change",()=>{
+                        if ((document.querySelector("#graph2_switch") as HTMLInputElement).checked) {
+                            updateLogiAnaGraph();
+                        }
+                        else {
+                            document.querySelector("#graph2").innerHTML = "";
+                            document.querySelector("#graph2").Add(E("p",{},[T("This graph is disabled.")]));
+                        }
+                    }),
+                    E("label",{for:"graph2_switch"},[T("graph2")]),
                 ]),
                 E("div",{class:"prop"},[
                     E("input",{type:"checkbox",id:"vmRun",checked:true},[]),

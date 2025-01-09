@@ -97,6 +97,8 @@ export function tick() {
     {
         input.forEach((v,i)=>{waveData[i].push(v)})
         Array.from(VM.getOutput(vm_id)).map(x=>x==1?1:0).forEach((v,i)=>{waveData[i+input.length].push(v)})
+    }
+    if ((document.querySelector("#graph2_switch") as HTMLInputElement).checked) {
         updateLogiAnaGraph();
     }
     // グラフの色を反映
