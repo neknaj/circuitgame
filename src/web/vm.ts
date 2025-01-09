@@ -16,6 +16,8 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         if (selected == null) { selected = product.module_dependency_sorted[0]; }
         module_name = selected;
     }
+    vm_id = VM.init(Compile(product.source,module_name));
+
     const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
     elm.innerHTML = "";
     console.log("module",module_name,selected);
@@ -40,8 +42,8 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     console.log(Compile(product.source,module_name));
     const moduleType = product.module_type_list.filter(m=>m.name==module_name)[0];
     console.log(moduleType);
-    elm.Add(E("h1",{},[T(module_name)]));
-    elm.Add(E("h2",{},[T("input")]));
+    elm.Add(E("h2",{},[T(module_name)]));
+    elm.Add(E("h3",{},[T("input")]));
     elm.Add(E("div",{class:"input"},Array(moduleType.mtype.input_count).fill(0).map(
         (_,i) => E("span",{},[
             (() => {
@@ -55,14 +57,17 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         ]),
     )));
     console.log(modulesAST)
-    elm.Add(E("h2",{},[T("output")]));
+    elm.Add(E("h3",{},[T("output")]));
     elm.Add(E("div",{class:"output"},Array(moduleType.mtype.output_count).fill(0).map(
         (_,i) => E("span",{},[
             E("input",{type:"checkbox",id:"output"+i,disabled:true},[]),
             E("label",{for:"output"+i},[T(modulesAST.outputs[i])])
         ]),
     )));
-    vm_id = VM.init(Compile(product.source,module_name));
+    elm.Add(E("h3",{},[T("tick")]));
+    elm.Add(E("span",{id:"tick"},[]));
+    elm.Add(E("h3",{},[T("number of gate")]));
+    elm.Add(E("span",{},[T(product.expanded_modules[module_name].gates.length)]));
     {
         const myEvent = new CustomEvent("moduleChanged", {
             detail: { module_name, product: product },

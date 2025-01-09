@@ -194,10 +194,6 @@ async function run() {
                     E("label",{for:"graph1_switch"},[T("graph")]),
                 ]),
                 E("div",{class:"prop"},[
-                    E("span",{},[T("tick: ")]),
-                    E("span",{id:"tick"},[]),
-                ]),
-                E("div",{class:"prop"},[
                     E("input",{type:"checkbox",id:"vmRun",checked:true},[]),
                     E("label",{for:"vmRun"},[T("run")]),
                 ]),
@@ -216,6 +212,11 @@ async function run() {
     )
     {
         (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;
+    }
+    {
+        mermaid.initialize({
+            maxEdges: 1000
+        })
     }
     await initEditor();
     // update();
