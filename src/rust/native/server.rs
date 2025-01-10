@@ -53,9 +53,10 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
     });
 
     // NCGの処理系を起動
+    let ws_tx_clone = ws_tx.clone();
     let fc_tx_clone = fc_tx.clone();
     let vmset_tx_clone = vmset_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,module)});
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -121,9 +122,6 @@ async fn key_watch(ws_tx: broadcast::Sender<String>,vmset_tx: broadcast::Sender<
                     // 最終イベント時刻を更新
                     last_events.insert(c, now);
 
-                    // イベントを送信
-                    let _ = ws_tx.send(format!("キー '{}' が押されました。", c));
-
                     if let Ok(i) = c.to_string().parse::<u32>() {
                         let _ = vmset_tx.send(i);
                     }
@@ -187,7 +185,6 @@ async fn handle_connection(
         while let Some(Ok(msg)) = ws_receiver.next().await {
             if let Message::Text(text) = msg {
                 println!("Received message: {}", text);
-                let _ = ws_tx.send(text);
             }
         }
     });
@@ -201,19 +198,20 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>,module: Option<String>) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
         let binary = process_input(&input_path,module.clone());
         let vmset_tx_clone = vmset_tx.clone();
+        let ws_tx_clone = ws_tx.clone();
 
         tokio::select! {
             Ok(message) = rx.recv() => {
                 println!("done {}", message);
                 // ファイル変更を検知した場合の処理を追加
             }
-            _ = runVM(binary, vmset_tx_clone) => {
+            _ = runVM(binary, vmset_tx_clone,ws_tx_clone) => {
                 println!("VM execution completed");
             }
         }
@@ -283,7 +281,7 @@ fn process_input(input_path: &str,module: Option<String>) -> Vec<u32> {
 }
 
 
-async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>) -> Result<(), Box<dyn std::error::Error>> {
+async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>) -> Result<(), Box<dyn std::error::Error>> {
     let mut rx = vmset_tx.subscribe();
     use crate::vm::types::Module;
     let mut vm_module = Module::new(data).unwrap();
@@ -296,9 +294,15 @@ async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>) -> Result<(), B
         // まずVMを1ステップ実行
         let _ = vm_module.next(1);
         // outputをプリント
-        println!("\x1B[3A\x1B[2K");
-        println!("input  {}",vm_module.get_input().unwrap().iter().map(|&b| if b {"1"}else{"0"}).collect::<Vec<_>>().join(" "));
-        println!("output {}",vm_module.get_output().unwrap().iter().map(|&b| if b {"1"}else{"0"}).collect::<Vec<_>>().join(" "));
+        println!("\x1B[4A\x1B[2K");
+        println!("tick   {}",vm_module.get_tick());
+        println!("input  {}",vm_module.get_input().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(" "));
+        println!("output {}",vm_module.get_output().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(" "));
+        let _ = ws_tx.send(format!("tick:{},input:{:?},output:{:?}",
+            vm_module.get_tick(),
+            vm_module.get_input().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(""),
+            vm_module.get_output().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(""),
+        ));
         // メッセージの確認（ノンブロッキング）
         if let Ok(index) = rx.try_recv() {
             // println!("Received VM setting: index={}",index);
