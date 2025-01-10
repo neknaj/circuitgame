@@ -5,7 +5,7 @@ pub fn test_gates(
     module_type_list: &Vec<crate::compiler::types::ModuleType>,
 )-> ResultwithWarn<std::collections::HashMap<String,Vec<TestPattern>>> {
     let mut errors = Vec::new();
-    let warns = Vec::new();
+    let mut warns = Vec::new();
     let mut result_map = std::collections::HashMap::<String,Vec<TestPattern>>::new();
     // let mut errors = Vec::new();
     for component in &product.ast.components {
@@ -62,7 +62,7 @@ pub fn test_gates(
                     }
                     //
                     if test_failed {
-                        errors.push(format!("Test failed: module {} input {:?}, expected {:?} but got {:?}",&test.name,pattern.inputs.clone(),pattern.outputs.clone(),output.clone()));
+                        warns.push(format!("Test failed: module {} input {:?}, expected {:?} but got {:?}",&test.name,pattern.inputs.clone(),pattern.outputs.clone(),output.clone()));
                     }
                     let test_pattern = TestPattern {
                         input : pattern.inputs.clone(),

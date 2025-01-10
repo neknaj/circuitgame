@@ -48,20 +48,56 @@ async function update() {
     const input = ace.edit("editor").getValue();
     const result = CompilerIntermediateProducts(input);
     console.log(result);
-    console.log(result.module_dependency_sorted[0]);
-    try {
-        const test_result = Test(input);
-        console.log(test_result);
-        for (let name of Object.keys(test_result.test_result)) {
-            console.log(`test: ${name}`);
-            console.table(test_result.test_result[name]);
-        }
-    }
-    catch (e) {
-        console.error(e);
-    }
+    // console.log(result.module_dependency_sorted[0]);
+    const test_result = Test(input);
+    console.log(test_result);
+    // for (let name of Object.keys(test_result.test_result)) {
+    //     console.log(`test: ${name}`);
+    //     console.table(test_result.test_result[name]);
+    // }
     // VM
+    setErrMsg(result,test_result);
     VMinit(document.querySelector("#vm"),result);
+}
+
+function setErrMsg(compiler_products: IntermediateProducts,test_products: TestProducts) {
+    // 普通にリストで表示
+    document.querySelector("#errMsgArea").Replace([
+        E("ul",{},compiler_products.errors.map(x=>E("li",{class:"error"},[T(x)]))),
+        E("ul",{},compiler_products.warns.map(x=>E("li",{class:"warn"},[T(x)]))),
+        E("ul",{},test_products.errors.map(x=>E("li",{class:"error"},[T(x)]))),
+        E("ul",{},test_products.warns.map(x=>E("li",{class:"warn"},[T(x)]))),
+    ]);
+    // テスト結果の表
+    document.querySelector("#testResult").Replace(Object.keys(test_products.test_result).map(
+        name=>{
+            const accept = !test_products.test_result[name].some(x=>!x.accept);
+            let detail = E("details",{class:[accept?"accept":"failed"]},[
+                E("summary",{},[
+                    T(name)
+                ]),
+                E("table",{},[
+                    E("thead",{},[E("tr",{},[
+                        E("th",{},[T("accept")]),
+                        E("th",{},[T("input")]),
+                        E("th",{},[T("output")]),
+                        E("th",{},[T("expect")]),
+                    ])]),
+                    E("tbody",{},
+                        test_products.test_result[name].map(x=>E("tr",{class:x.accept?"accept":"failed"},[
+                            E("td",{},[T(x.accept?"true":"false")]),
+                            E("td",{class:"boolean"},[T(x.input.length>0?x.input.map(x=>x?"t":"f").join(" "):"-")]),
+                            E("td",{class:"boolean"},[T(x.output.length>0?x.output.map(x=>x?"t":"f").join(" "):"-")]),
+                            E("td",{class:"boolean"},[T(x.expect.length>0?x.expect.map(x=>x?"t":"f").join(" "):"-")]),
+                        ]))
+                    ),
+                ])
+            ]);
+            // エラーあるやつだけ詳細表示をデフォルトopen
+            if (!accept) { detail.addProp({open:true}); }
+            return detail;
+        }
+    ));
 }
 
 
@@ -121,7 +157,7 @@ ${output_wires}
     }
 }
 
-import { Module } from './types.js';
+import { Module, TestProducts } from './types.js';
 function constructGraph(product: IntermediateProducts,module_name: string,offset: number=0,subgraph=0): [string,number,number] {
     if (module_name=="nor") { return [`nor${offset}\n`,offset+1,subgraph]; }
     const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
@@ -154,15 +190,21 @@ async function run() {
     initlayout(
         document.querySelector("#layoutroot"),
         ["h",[3,1],[
-            ["v",[2,1],[
-                ["h",[1,3],[
-                    ["v",[2,1],[
-                        ["c","vmArea"],
-                        ["c","vmCtrlArea"],
+            ["h",[3,1],[
+                ["v",[2,1],[
+                    ["h",[1,3],[
+                        ["v",[2,1],[
+                            ["c","vmArea"],
+                            ["c","vmCtrlArea"],
+                        ]],
+                        ["c","graph1Area"],
                     ]],
-                    ["c","graph1Area"],
+                    ["c","graph2Area"],
                 ]],
-                ["c","graph2Area"],
+                ["v",[3,3],[
+                    ["c","errMsgArea"],
+                    ["c","testResult"],
+                ]]
             ]],
             ["c","editArea"],
         ]],
@@ -180,6 +222,8 @@ async function run() {
                 ]),
                 E("div",{id:"editor"},[]),
             ]),
+            errMsgArea: ()=>{return E("div",{id:"errMsgArea"},[])},
+            testResult: ()=>{return E("div",{id:"testResult"},[])},
             vmCtrlArea: ()=>E("div",{id:"vm_ctrl_area"},[
                 E("div",{class:"prop"},[
                     E("input",{type:"checkbox",id:"graph1_switch",checked:true},[]).Listen("change",()=>{
