@@ -30,19 +30,43 @@ async function fetchTextFile(url: string): Promise<string> {
 
 let socket = null;
 let editor;
+let retryCount = 0;
 function initWebSocket(path) {
+    const reconnectInterval = 3000; // 再接続間隔（ミリ秒）
+    const maxRetries = 20; // 最大再接続回数
     console.log(path);
     socket = new WebSocket(path);
     socket.onmessage = function(event) {
         const message = event.data as string;
         console.log(message)
         if (message.startsWith("file:")) {
+            if (message.slice(5).length<1) {
+                socket.send("get file");
+                return;
+            }
             editor.setValue(`# received from ${path}\n# ${new Date()}\n\n${message.slice(5)}`);
             editor.moveCursorTo(0, 0);
         }
     };
     socket.onopen = function() {
         socket.send("get file");
+    };
+
+    socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = (event) => {
+        console.warn("WebSocket connection closed:", event);
+
+        // 再接続を試みる
+        if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Retrying connection (${retryCount}/${maxRetries}) in ${reconnectInterval / 1000} seconds...`);
+            setTimeout(initWebSocket, reconnectInterval, path);
+        } else {
+            console.error("Maximum retry attempts reached. Connection failed.");
+        }
     };
 }
 
