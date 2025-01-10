@@ -3,7 +3,12 @@ use super::super::vm;
 use super::super::compiler;
 use colored::*;
 
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crossterm::{
+    cursor,
+    terminal::{self, Clear, ClearType},
+    ExecutableCommand, event,
+    event::{Event, KeyCode, KeyModifiers},
+};
 use tokio::task;
 use tokio::time::{sleep, Duration, self, Instant};
 use tokio::net::TcpListener;
@@ -21,40 +26,46 @@ use std::collections::HashMap;
 
 pub async fn main(input_path: String) {
     // tokioのbroadcastチャンネルを使用
-    let (tx, _rx) = broadcast::channel::<String>(100);
+    let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
+    let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
 
     // HTTPサーバーを起動
     tokio::spawn(start_http_server());
     // WebSocketサーバーを起動
-    let tx_clone = tx.clone();
-    tokio::spawn(start_websocket_server(tx_clone));
+    let ws_tx_clone = ws_tx.clone();
+    tokio::spawn(start_websocket_server(ws_tx_clone));
 
     // キー入力監視用のタスク
-    let tx_clone = tx.clone();
+    let ws_tx_clone = ws_tx.clone();
     tokio::spawn(async move {
-        key_watch(tx_clone).await;
+        key_watch(ws_tx_clone).await;
     });
 
     // ファイル監視タスクを起動
-    let tx_clone = tx.clone();
+    let fc_tx_clone = fc_tx.clone();
+    let watch_path = input_path.clone();
     tokio::spawn(async move {
-        if let Err(e) = watch_file(&input_path, tx_clone).await {
+        if let Err(e) = watch_file(watch_path, fc_tx_clone).await {
             eprintln!("Error watching file: {}", e);
         }
     });
+
+    // NCGの処理系を起動
+    let fc_tx_clone = fc_tx.clone();
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
 }
 
-async fn watch_file(path: &str, tx: broadcast::Sender<String>) -> NotifyResult<()> {
-    let (watcher_tx, mut watcher_rx) = mpsc::channel(100);
+async fn watch_file(path: String, fc_tx: broadcast::Sender<String>) -> NotifyResult<()> {
+    let (watcher_ws_tx, mut watcher_rx) = mpsc::channel(100);
     let mut watcher = notify::recommended_watcher(move |res: NotifyResult<notify::Event>| {
         if let Ok(event) = res {
-            let _ = watcher_tx.blocking_send(event);
+            let _ = watcher_ws_tx.blocking_send(event);
         }
     })?;
-    watcher.watch(Path::new(path), RecursiveMode::Recursive)?;
+    watcher.watch(Path::new(&path), RecursiveMode::Recursive)?;
     println!("Watching for changes in: {}", path);
     // デバウンス用の状態管理
     let mut last_events: HashMap<String, Instant> = HashMap::new();
@@ -76,7 +87,7 @@ async fn watch_file(path: &str, tx: broadcast::Sender<String>) -> NotifyResult<(
         last_events.insert(path_str.clone(), now);
         let message = format!("File change detected - Path: {}, Event: {:?}", path_str, event.kind);
         println!("{}", message);
-        let _ = tx.send(message);
+        let _ = fc_tx.send(message);
         // 古いエントリを削除
         last_events.retain(|_, time| now.duration_since(*time) < debounce_duration);
     }
@@ -85,14 +96,14 @@ async fn watch_file(path: &str, tx: broadcast::Sender<String>) -> NotifyResult<(
 }
 
 
-async fn key_watch(tx: broadcast::Sender<String>) {
+async fn key_watch(ws_tx: broadcast::Sender<String>) {
     loop {
         if event::poll(Duration::from_millis(100)).unwrap() {
             if let Event::Key(key_event) = event::read().unwrap() {
                 match (key_event.code, key_event.modifiers) {
                     (KeyCode::Char(c), _) => {
                         println!("キー '{}' が押されました。", c);
-                        let _ = tx.send(format!("キー '{}' が押されました。", c));
+                        let _ = ws_tx.send(format!("キー '{}' が押されました。", c));
                     }
                     _ => {
                         println!("他のキーが押されました");
@@ -114,7 +125,7 @@ async fn start_http_server() {
         .await;
 }
 
-async fn start_websocket_server(tx: broadcast::Sender<String>) {
+async fn start_websocket_server(ws_tx: broadcast::Sender<String>) {
     let listener = TcpListener::bind("127.0.0.1:8081").await.unwrap();
     println!("WebSocket server running at ws://localhost:8081");
 
@@ -125,17 +136,17 @@ async fn start_websocket_server(tx: broadcast::Sender<String>) {
 
         println!("New WebSocket connection!");
 
-        let tx = tx.clone();
-        tokio::spawn(handle_connection(ws_stream, tx));
+        let ws_tx = ws_tx.clone();
+        tokio::spawn(handle_connection(ws_stream, ws_tx));
     }
 }
 
 async fn handle_connection(
     ws_stream: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
-    tx: broadcast::Sender<String>,
+    ws_tx: broadcast::Sender<String>,
 ) {
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
-    let mut rx = tx.subscribe();
+    let mut rx = ws_tx.subscribe();
 
     // メッセージ送信用タスク
     let mut send_task = tokio::spawn(async move {
@@ -151,7 +162,7 @@ async fn handle_connection(
         while let Some(Ok(msg)) = ws_receiver.next().await {
             if let Message::Text(text) = msg {
                 println!("Received message: {}", text);
-                let _ = tx.send(text);
+                let _ = ws_tx.send(text);
             }
         }
     });
@@ -161,4 +172,83 @@ async fn handle_connection(
         _ = (&mut send_task) => {},
         _ = (&mut recv_task) => {},
     }
+}
+
+
+
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>) {
+    let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
+    loop {
+        // inputを処理
+        let binary = process_input(&input_path);
+        tokio::select! {
+            _ = async {
+                // vmを実行
+            } => {}
+            result = rx.recv() => {
+                if let Ok(msg) = result {
+                    println!("Received message: {}", msg);
+                    // メッセージに基づく処理
+                }
+            }
+        }
+    }
+}
+
+// 入力処理を別関数として分離
+fn process_input(input_path: &str) -> Vec<u32> {
+    // 画面クリア
+    print!("\x1B[2J\x1B[1;1H");  // ANSIエスケープシーケンスでクリア
+
+    // inputを読み込み
+    println!("{}:{} input file: {}","[info]".green(),"input".cyan(),input_path);
+    let input = match std::fs::read_to_string(input_path) {
+        Ok(v) => v,
+        Err(e) => {
+            match e.kind() {
+                std::io::ErrorKind::NotFound => println!("{}:{} File not found","[error]".red(),"arguments".cyan()),
+                std::io::ErrorKind::PermissionDenied => println!("{}:{} Permission denied","[error]".red(),"arguments".cyan()),
+                _ => println!("{}:{} {}","[error]".red(),"arguments".cyan(),e),
+            };
+            return Vec::new();
+        }
+    };
+
+    // inputを処理
+    let result = compiler::intermediate_products(&input);
+
+    for i in &result.warns {
+        println!("{}:{} {}","[warn]".yellow(),"compile".cyan(),i);
+    }
+    for i in &result.errors {
+        println!("{}:{} {}","[error]".red(),"compile".cyan(),i);
+    }
+    println!("sortedDependency {:?}",&result.module_dependency_sorted);
+
+    if result.errors.len() > 0 {
+        return Vec::new();
+    }
+
+    let module = match result.module_dependency_sorted.get(0) {
+        Some(v) => v.clone(),
+        None => return Vec::new(),
+    };
+
+    let binary = match compiler::serialize(result.clone(), module.as_str()) {
+        Ok(v) => v,
+        Err(v) => {
+            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+            return Vec::new();
+        }
+    };
+
+    let test_result = test::test(result);
+    for i in &test_result.warns {
+        println!("{}:{} {}","[warn]".yellow(),"test".cyan(),i);
+    }
+    for i in &test_result.errors {
+        println!("{}:{} {}","[error]".red(),"test".cyan(),i);
+    }
+
+    binary
 }
