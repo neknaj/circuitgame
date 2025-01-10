@@ -32,7 +32,8 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
 
     // WebSocketサーバーを起動
     let ws_tx_clone = ws_tx.clone();
-    tokio::spawn(start_websocket_server(ws_tx_clone));
+    let input_path_clone = input_path.clone();
+    tokio::spawn(start_websocket_server(ws_tx_clone,input_path_clone));
 
     // キー入力監視用のタスク
     let ws_tx_clone = ws_tx.clone();
@@ -43,9 +44,10 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
 
     // ファイル監視タスクを起動
     let fc_tx_clone = fc_tx.clone();
+    let ws_tx_clone = ws_tx.clone();
     let watch_path = input_path.clone();
     tokio::spawn(async move {
-        if let Err(e) = watch_file(watch_path, fc_tx_clone).await {
+        if let Err(e) = watch_file(watch_path,ws_tx_clone, fc_tx_clone).await {
             eprintln!("Error watching file: {}", e);
         }
     });
@@ -60,7 +62,7 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
     println!("Exit");
 }
 
-async fn watch_file(path: String, fc_tx: broadcast::Sender<String>) -> NotifyResult<()> {
+async fn watch_file(path: String, ws_tx: broadcast::Sender<String>, fc_tx: broadcast::Sender<String>) -> NotifyResult<()> {
     let (watcher_ws_tx, mut watcher_rx) = mpsc::channel(100);
     let mut watcher = notify::recommended_watcher(move |res: NotifyResult<notify::Event>| {
         if let Ok(event) = res {
@@ -88,7 +90,6 @@ async fn watch_file(path: String, fc_tx: broadcast::Sender<String>) -> NotifyRes
         // 最終イベント時刻を更新
         last_events.insert(path_str.clone(), now);
         let message = format!("File change detected - Path: {}, Event: {:?}", path_str, event.kind);
-        println!("{}", message);
         let _ = fc_tx.send(message);
         // 古いエントリを削除
         last_events.retain(|_, time| now.duration_since(*time) < debounce_duration);
@@ -136,7 +137,7 @@ async fn key_watch(ws_tx: broadcast::Sender<String>,vmset_tx: broadcast::Sender<
     }
 }
 
-async fn start_websocket_server(ws_tx: broadcast::Sender<String>) {
+async fn start_websocket_server(ws_tx: broadcast::Sender<String>,input_path: String) {
     let listener = TcpListener::bind("127.0.0.1:8081").await.unwrap();
     println!("WebSocket server running at ws://localhost:8081");
 
@@ -148,13 +149,15 @@ async fn start_websocket_server(ws_tx: broadcast::Sender<String>) {
         println!("New WebSocket connection!");
 
         let ws_tx = ws_tx.clone();
-        tokio::spawn(handle_connection(ws_stream, ws_tx));
+        let input_path_clone = input_path.clone();
+        tokio::spawn(handle_connection(ws_stream, ws_tx, input_path_clone));
     }
 }
 
 async fn handle_connection(
     ws_stream: tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>,
     ws_tx: broadcast::Sender<String>,
+    input_path: String,
 ) {
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
     let mut rx = ws_tx.subscribe();
@@ -169,10 +172,18 @@ async fn handle_connection(
     });
 
     // メッセージ受信用タスク
+    let ws_tx_clone = ws_tx.clone();
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = ws_receiver.next().await {
             if let Message::Text(text) = msg {
                 println!("Received message: {}", text);
+                if (text.starts_with("get file")) { // websocketでファイルを送信
+                    let input = match std::fs::read_to_string(&input_path) {
+                        Ok(v) => v,
+                        Err(e) => "fs error".to_string()
+                    };
+                    let _ = ws_tx_clone.send(format!("file:{}",input));
+                }
             }
         }
     });
@@ -191,6 +202,14 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
     loop {
         // inputを処理
         let binary = process_input(&input_path,module.clone());
+        { // websocketでファイルを送信
+            let input = match std::fs::read_to_string(&input_path) {
+                Ok(v) => v,
+                Err(e) => "fs error".to_string()
+            };
+            let _ = ws_tx.send(format!("file:{}",input));
+        }
+
         let vmset_tx_clone = vmset_tx.clone();
         let ws_tx_clone = ws_tx.clone();
 
@@ -272,7 +291,10 @@ fn process_input(input_path: &str,module: Option<String>) -> Vec<u32> {
 async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>) -> Result<(), Box<dyn std::error::Error>> {
     let mut rx = vmset_tx.subscribe();
     use crate::vm::types::Module;
-    let mut vm_module = Module::new(data).unwrap();
+    let mut vm_module = match Module::new(data) {
+        Ok(v) => v,
+        Err(_) => {println!("failed to init VM");loop{}}
+    };
 
     println!("");
     println!("VM start");
@@ -286,11 +308,11 @@ async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcas
         println!("tick   {}",vm_module.get_tick());
         println!("input  {}",vm_module.get_input().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(" "));
         println!("output {}",vm_module.get_output().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(" "));
-        let _ = ws_tx.send(format!("tick:{},input:{:?},output:{:?}",
-            vm_module.get_tick(),
-            vm_module.get_input().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(""),
-            vm_module.get_output().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(""),
-        ));
+        // let _ = ws_tx.send(format!("tick:{},input:{:?},output:{:?}",
+        //     vm_module.get_tick(),
+        //     vm_module.get_input().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(""),
+        //     vm_module.get_output().unwrap().iter().map(|&b| if b {"t"}else{"f"}).collect::<Vec<_>>().join(""),
+        // ));
         // メッセージの確認（ノンブロッキング）
         if let Ok(index) = rx.try_recv() {
             // println!("Received VM setting: index={}",index);

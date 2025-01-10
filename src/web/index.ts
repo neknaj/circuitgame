@@ -28,10 +28,28 @@ async function fetchTextFile(url: string): Promise<string> {
     }
 }
 
+let socket = null;
+let editor;
+function initWebSocket(path) {
+    console.log(path);
+    socket = new WebSocket(path);
+    socket.onmessage = function(event) {
+        const message = event.data as string;
+        console.log(message)
+        if (message.startsWith("file:")) {
+            editor.setValue(message.slice(5));
+            editor.moveCursorTo(0, 0);
+        }
+    };
+    socket.onopen = function() {
+        socket.send("get file");
+    };
+}
+
 async function initEditor() {
     ace.define("ace/theme/custom_theme", ["require", "exports", "module", "ace/lib/dom"], darkTheme);
     // Aceエディタを初期化
-    var editor = ace.edit("editor");
+    editor = ace.edit("editor");
     editor.setTheme("ace/theme/custom_theme"); // テーマの設定
     editor.session.setMode(new CustomMode());
     editor.getSession().on('change',()=>{
@@ -219,6 +237,35 @@ async function run() {
                         E("input",{type:"checkbox",id:"autoCompile",checked:true},[]),
                         E("label",{for:"autoCompile"},[T("auto compile")]),
                     ]),
+                    E("input",{type:"checkbox",id:"webSocket"},[]).Listen("change",()=>{
+                        if ((document.querySelector("#webSocket") as HTMLInputElement).checked) {
+                            document.querySelector("#webSocketURL").classList.remove("hide");
+                            editor.setReadOnly(true);
+                            initWebSocket((document.querySelector("#webSocketURL") as HTMLInputElement).value);
+                        }
+                        else {
+                            document.querySelector("#webSocketURL").classList.add("hide");
+                            editor.setReadOnly(false);
+                            try {
+                                socket.close();
+                            } catch (e) {}
+                        }
+                    }),
+                    E("label",{for:"webSocket"},[T("webSocket")]),
+                    E("input",{type:"url",id:"webSocketURL"},[]).Listen("change",()=>{
+                        if ((document.querySelector("#webSocket") as HTMLInputElement).checked) {
+                            document.querySelector("#webSocketURL").classList.remove("hide");
+                            editor.setReadOnly(true);
+                            initWebSocket((document.querySelector("#webSocketURL") as HTMLInputElement).value);
+                        }
+                        else {
+                            document.querySelector("#webSocketURL").classList.add("hide");
+                            editor.setReadOnly(false);
+                            try {
+                                socket.close();
+                            } catch (e) {}
+                        }
+                    }),
                 ]),
                 E("div",{id:"editor"},[]),
             ]),
@@ -267,16 +314,28 @@ async function run() {
             ]),
         }
     )
+    await initEditor();
     {
         (document.querySelector("#vmSpeed_label") as HTMLLabelElement).innerText = (document.querySelector("#vmSpeed") as HTMLInputElement).value;
         (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;
+        if ((document.querySelector("#webSocket") as HTMLInputElement).checked) {
+            document.querySelector("#webSocketURL").classList.remove("hide");
+            editor.setReadOnly(true);
+            initWebSocket((document.querySelector("#webSocketURL") as HTMLInputElement).value);
+        }
+        else {
+            document.querySelector("#webSocketURL").classList.add("hide");
+            editor.setReadOnly(false);
+            try {
+                socket.close();
+            } catch (e) {}
+        }
     }
     {
         mermaid.initialize({
             maxEdges: 1000
         })
     }
-    await initEditor();
     // update();
 }
 
