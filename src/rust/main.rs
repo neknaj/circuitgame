@@ -17,7 +17,8 @@ struct Opt {
 }
 
 #[cfg(not(feature = "web"))]
-fn main() {
+#[tokio::main]
+async fn main() {
     use colored::*;
     println!("< {} >","Neknaj Circuit Game".bold());
     // 引数を処理
@@ -33,6 +34,9 @@ fn main() {
     let server_launch = opt.server.unwrap_or(false);
     if !server_launch {
         native::withoutserver::main(input_path, output_path);
+    }
+    else {
+        native::server::main().await;
     }
     return;
 }

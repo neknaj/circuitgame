@@ -19,6 +19,13 @@ colored = "2.0"
 rand = "0.8.5"
 getrandom = { version = "0.2.15", features = ["js"] }
 
+tokio = { version = "1", features = ["full"] }
+warp = "0.3"
+tokio-tungstenite = "0.17"
+crossbeam-channel = "0.5"
+notify = "5.1"
+futures-util = "0.3"
+
 [[bin]]
 name = "circuitgame_bin"
 path = "src/rust/main.rs"

@@ -1,6 +1,6 @@
-use super::test;
-use super::vm;
-use super::compiler;
+use super::super::test;
+use super::super::vm;
+use super::super::compiler;
 use colored::*;
 
 pub fn main(input_path: String, output_path: Option<String>) {

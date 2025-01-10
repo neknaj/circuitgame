@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>WebSocket Echo Server</h1>
+    <script>
+        const socket = new WebSocket("ws://localhost:8081");
+        socket.onmessage = function(event) {
+            const message = event.data;
+            document.body.insertAdjacentHTML('beforeend', '<p>' + message + '</p>');
+        };
+        socket.onopen = function() {
+            socket.send("Hello from client!");
+        };
+    </script>
+</body>
+</html>
