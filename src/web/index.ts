@@ -37,7 +37,7 @@ function initWebSocket(path) {
         const message = event.data as string;
         console.log(message)
         if (message.startsWith("file:")) {
-            editor.setValue(`# received from ${path}\n\n${message.slice(5)}`);
+            editor.setValue(`# received from ${path}\n# ${new Date()}\n\n${message.slice(5)}`);
             editor.moveCursorTo(0, 0);
         }
     };

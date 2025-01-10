@@ -91,6 +91,13 @@ async fn watch_file(path: String, ws_tx: broadcast::Sender<String>, fc_tx: broad
         last_events.insert(path_str.clone(), now);
         let message = format!("File change detected - Path: {}, Event: {:?}", path_str, event.kind);
         let _ = fc_tx.send(message);
+        { // websocketでファイルを送信
+            let input = match std::fs::read_to_string(&path) {
+                Ok(v) => v,
+                Err(e) => "fs error".to_string()
+            };
+            let _ = ws_tx.send(format!("file:{}",input));
+        }
         // 古いエントリを削除
         last_events.retain(|_, time| now.duration_since(*time) < debounce_duration);
     }
@@ -202,13 +209,6 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
     loop {
         // inputを処理
         let binary = process_input(&input_path,module.clone());
-        { // websocketでファイルを送信
-            let input = match std::fs::read_to_string(&input_path) {
-                Ok(v) => v,
-                Err(e) => "fs error".to_string()
-            };
-            let _ = ws_tx.send(format!("file:{}",input));
-        }
 
         let vmset_tx_clone = vmset_tx.clone();
         let ws_tx_clone = ws_tx.clone();
@@ -288,12 +288,15 @@ fn process_input(input_path: &str,module: Option<String>) -> Vec<u32> {
 }
 
 
-async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>) -> Result<(), Box<dyn std::error::Error>> {
+async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>) -> Result<(),String> {
     let mut rx = vmset_tx.subscribe();
     use crate::vm::types::Module;
     let mut vm_module = match Module::new(data) {
         Ok(v) => v,
-        Err(_) => {println!("failed to init VM");loop{}}
+        Err(_) => {
+            println!("failed to init VM");
+            sleep(Duration::from_secs(2)).await;
+            return Err(format!("failed to init VM"));}
     };
 
     println!("");
