@@ -36,7 +36,7 @@ async fn main() {
         native::withoutserver::main(input_path, output_path);
     }
     else {
-        native::server::main().await;
+        native::server::main(input_path).await;
     }
     return;
 }
