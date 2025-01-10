@@ -104,7 +104,7 @@ async function main() {
             "./dist/circuitgame_lib_bg.wasm"
         ],
     ]);
-    await getFile('./src/web/cdom.ts','https://raw.githubusercontent.com/neknaj/cDom/8d6fa798db021d3ce7e4e4a4c3073f5fb2e71237/cdom_module.ts');
+    await getFile('./src/web/cdom.ts','https://raw.githubusercontent.com/neknaj/cDom/2622d7887d1fae564e1e5b989ea38e2243e918bf/cdom_module.ts');
     if (await getFile('./src/web/layout.js','https://raw.githubusercontent.com/neknaj/webSplitLayout/c7e1c52cb37a8bfbf9968b825c05a2e9924ca88e/type1/layout.js')) {
         fs.readFile('./src/web/layout.js', 'utf8', (err, data) => {
             const updatedData = "import { elm } from './cdom.js';\n\n" + data + "\n\nexport { initlayout };";

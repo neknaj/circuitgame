@@ -82,6 +82,36 @@
         }
     }
 
+    #testResult {
+        & td, & th {
+            padding: 0px 10px;
+            border-radius: 5px;
+        }
+        & td {
+            background-color: #98b2ff30;
+        }
+        & th {
+            background-color: #96adb930;
+        }
+        & .boolean {
+            font-weight: 800;
+            font-family: monospace;
+        }
+        & tr.failed {
+            background-color: #ff000030;
+        }
+        & details.accept > summary::after {
+            content: "accept";
+            margin-left: 5px;
+            color: #6b90ff;
+        }
+        & details.failed > summary::after {
+            content: "failed";
+            margin-left: 5px;
+            color: #ff6b6b;
+        }
+    }
+
     #graph2 {
         overflow: hidden;
         height: 100%;
