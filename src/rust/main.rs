@@ -10,8 +10,10 @@ struct Opt {
     /// Input file
     #[arg(short = 'i', long = "input", value_name = "Input File Path")]
     input: Option<String>,
-    #[arg(short = 'o', long = "output", value_name = "Output NCGb to File")]
+    #[arg(short = 'o', long = "output", value_name = "Output File Path")]
     output: Option<String>,
+    #[arg(short = 'm', long = "module", value_name = "Name of module to compile")]
+    module: Option<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
     server: Option<bool>,
 }
@@ -33,10 +35,10 @@ async fn main() {
     let output_path = opt.output;
     let server_launch = opt.server.unwrap_or(false);
     if !server_launch {
-        native::withoutserver::main(input_path, output_path);
+        native::withoutserver::main(input_path, output_path, opt.module);
     }
     else {
-        native::server::main(input_path).await;
+        native::server::main(input_path, output_path, opt.module).await;
     }
     return;
 }

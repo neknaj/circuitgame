@@ -3,7 +3,7 @@ use super::super::vm;
 use super::super::compiler;
 use colored::*;
 
-pub fn main(input_path: String, output_path: Option<String>) {
+pub async fn main(input_path: String, output_path: Option<String>, module: Option<String>) {
     // inputを読み込み
     println!("{}:{} input file: {}","[info]".green(),"input".cyan(),input_path.clone());
     let input = match std::fs::read_to_string(input_path) {
@@ -28,11 +28,15 @@ pub fn main(input_path: String, output_path: Option<String>) {
     }
     println!("sortedDependency {:?}",&result.module_dependency_sorted);
     if result.errors.len()>0 {return;}
-    let module = match result.module_dependency_sorted.get(0) {
-        Some(v) => v.clone(),
-        None => {return;}
+    let module_name = match module {
+        Some(v) => v,
+        None => match result.module_dependency_sorted.get(0) {
+            Some(v) => v.clone(),
+            None => {return;}
+        }
     };
-    let binary = match compiler::serialize(result.clone(), module.as_str()) {
+    println!("{}:{} Compiling module: {}","[info]".green(),"compile".cyan(),module_name);
+    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
         Ok(v)=>v,
         Err(v)=>{
             println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);

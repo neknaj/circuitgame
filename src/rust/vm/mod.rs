@@ -14,10 +14,21 @@ impl Module {
         self.cond.fill(false);
         self.tick=0;
     }
+    /// inputを指定した値にする
     pub fn set(&mut self,index: u32,value: bool) -> Result<(),String> {
         match self.cond.get_mut(index as usize + &self.gates.len()) {
             Some(v)=>{
                 *v = value;
+            },
+            None =>{return Err(format!("Index out of bounds"));}
+        };
+        Ok(())
+    }
+    /// inputを反転する
+    pub fn inv(&mut self,index: u32) -> Result<(),String> {
+        match self.cond.get_mut(index as usize + &self.gates.len()) {
+            Some(v)=>{
+                *v = !*v;
             },
             None =>{return Err(format!("Index out of bounds"));}
         };
@@ -35,6 +46,20 @@ impl Module {
             }
         }
         Ok(outputs)
+    }
+    /// 全てのinputを取得する
+    pub fn get_input(&self) -> Result<GatesCond,String> {
+        let mut inputs = Vec::new();
+        let gates = self.gates.len();
+        for i in 0..self.inputs {
+            match self.cond.get(i as usize + gates) {
+                Some(v) => {
+                    inputs.push(v.clone());
+                }
+                None => {return Err(format!("Index out of bounds"));}
+            }
+        }
+        Ok(inputs)
     }
     /// 全てのgatesを取得する input付き
     pub fn get_gates(&self) -> GatesCond {

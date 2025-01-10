@@ -24,10 +24,11 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String) {
+pub async fn main(input_path: String, output_path: Option<String>, module: Option<String>) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
+    let (vmset_tx, _vmset_rx) = broadcast::channel::<u32>(100); // ncg処理 (file change 通知)
 
     // HTTPサーバーを起動
     tokio::spawn(start_http_server());
@@ -37,8 +38,9 @@ pub async fn main(input_path: String) {
 
     // キー入力監視用のタスク
     let ws_tx_clone = ws_tx.clone();
+    let vmset_tx_clone = vmset_tx.clone();
     tokio::spawn(async move {
-        key_watch(ws_tx_clone).await;
+        key_watch(ws_tx_clone, vmset_tx_clone).await;
     });
 
     // ファイル監視タスクを起動
@@ -52,7 +54,8 @@ pub async fn main(input_path: String) {
 
     // NCGの処理系を起動
     let fc_tx_clone = fc_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone)});
+    let vmset_tx_clone = vmset_tx.clone();
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,module)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -96,21 +99,43 @@ async fn watch_file(path: String, fc_tx: broadcast::Sender<String>) -> NotifyRes
 }
 
 
-async fn key_watch(ws_tx: broadcast::Sender<String>) {
+async fn key_watch(ws_tx: broadcast::Sender<String>,vmset_tx: broadcast::Sender<u32>) {
+    // デバウンス用の状態管理
+    let debounce_duration = Duration::from_millis(100); // 100ms のデバウンス時間
+    let mut last_events: HashMap<char, Instant> = HashMap::new();
+
     loop {
         if event::poll(Duration::from_millis(100)).unwrap() {
             if let Event::Key(key_event) = event::read().unwrap() {
-                match (key_event.code, key_event.modifiers) {
-                    (KeyCode::Char(c), _) => {
-                        println!("キー '{}' が押されました。", c);
-                        let _ = ws_tx.send(format!("キー '{}' が押されました。", c));
+                if let KeyCode::Char(c) = key_event.code {
+                    let now = Instant::now();
+
+                    // キーの最後のイベント時刻を確認
+                    if let Some(last_time) = last_events.get(&c) {
+                        if now.duration_since(*last_time) < debounce_duration {
+                            // デバウンス期間内なのでスキップ
+                            continue;
+                        }
                     }
-                    _ => {
-                        println!("他のキーが押されました");
+
+                    // 最終イベント時刻を更新
+                    last_events.insert(c, now);
+
+                    // イベントを送信
+                    let _ = ws_tx.send(format!("キー '{}' が押されました。", c));
+
+                    if let Ok(i) = c.to_string().parse::<u32>() {
+                        let _ = vmset_tx.send(i);
                     }
                 }
             }
         }
+
+        // 古いエントリを削除
+        let now = Instant::now();
+        last_events.retain(|_, time| now.duration_since(*time) < debounce_duration);
+
+        // 少し待つ
         sleep(Duration::from_millis(10)).await;
     }
 }
@@ -176,27 +201,27 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>,module: Option<String>) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
-        let binary = process_input(&input_path);
+        let binary = process_input(&input_path,module.clone());
+        let vmset_tx_clone = vmset_tx.clone();
+
         tokio::select! {
-            _ = async {
-                // vmを実行
-            } => {}
-            result = rx.recv() => {
-                if let Ok(msg) = result {
-                    println!("Received message: {}", msg);
-                    // メッセージに基づく処理
-                }
+            Ok(message) = rx.recv() => {
+                println!("done {}", message);
+                // ファイル変更を検知した場合の処理を追加
+            }
+            _ = runVM(binary, vmset_tx_clone) => {
+                println!("VM execution completed");
             }
         }
     }
 }
 
 // 入力処理を別関数として分離
-fn process_input(input_path: &str) -> Vec<u32> {
+fn process_input(input_path: &str,module: Option<String>) -> Vec<u32> {
     // 画面クリア
     print!("\x1B[2J\x1B[1;1H");  // ANSIエスケープシーケンスでクリア
 
@@ -229,12 +254,16 @@ fn process_input(input_path: &str) -> Vec<u32> {
         return Vec::new();
     }
 
-    let module = match result.module_dependency_sorted.get(0) {
-        Some(v) => v.clone(),
-        None => return Vec::new(),
+    let module_name = match module {
+        Some(v) => v,
+        None => match result.module_dependency_sorted.get(0) {
+            Some(v) => v.clone(),
+            None => {return Vec::new();}
+        }
     };
+    println!("{}:{} Compiling module: {}","[info]".green(),"compile".cyan(),module_name);
 
-    let binary = match compiler::serialize(result.clone(), module.as_str()) {
+    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
         Ok(v) => v,
         Err(v) => {
             println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
@@ -251,4 +280,33 @@ fn process_input(input_path: &str) -> Vec<u32> {
     }
 
     binary
+}
+
+
+async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>) -> Result<(), Box<dyn std::error::Error>> {
+    let mut rx = vmset_tx.subscribe();
+    use crate::vm::types::Module;
+    let mut vm_module = Module::new(data).unwrap();
+
+    println!("");
+    println!("VM start");
+    println!("Press the number key in the index to switch inputs");
+    println!("\n\n");
+    loop {
+        // まずVMを1ステップ実行
+        let _ = vm_module.next(1);
+        // outputをプリント
+        println!("\x1B[3A\x1B[2K");
+        println!("input  {}",vm_module.get_input().unwrap().iter().map(|&b| if b {"1"}else{"0"}).collect::<Vec<_>>().join(" "));
+        println!("output {}",vm_module.get_output().unwrap().iter().map(|&b| if b {"1"}else{"0"}).collect::<Vec<_>>().join(" "));
+        // メッセージの確認（ノンブロッキング）
+        if let Ok(index) = rx.try_recv() {
+            // println!("Received VM setting: index={}",index);
+            // ここでメッセージに基づく処理を実装
+            // 例：VMの設定を更新するなど
+            let _ = vm_module.inv(index);
+        }
+        // 必要に応じて短い待機を入れる
+        tokio::time::sleep(Duration::from_millis(1)).await;
+    }
 }
