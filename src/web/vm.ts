@@ -11,12 +11,13 @@ let waveLabels = [];
 
 function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: string = null) {
     if (module_name!=null&&product.module_dependency_sorted.includes(module_name)==false) { module_name = null; }
-    if (selected!=null&&product.module_dependency_sorted.includes(selected)==false) { selected = null; }
     if (module_name == null) {
         if (selected == null) { selected = product.module_dependency_sorted[0]; }
         if (selected == null) { return; }
         module_name = selected;
     }
+    if (module_name!=null&&product.module_dependency_sorted.includes(module_name)==false) { return; }
+    selected = module_name;
     const binary = Compile(product.source,module_name);
     if (binary.length==0) { console.warn("compiling error") ;return; }
     vm_id = VM.init(binary);
