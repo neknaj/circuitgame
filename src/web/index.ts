@@ -206,9 +206,12 @@ async function run() {
                 E("div",{class:"prop"},[
                     E("input",{type:"checkbox",id:"vmRun",checked:true},[]),
                     E("label",{for:"vmRun"},[T("run")]),
-                ]),
-                E("div",{class:"prop"},[
                     E("button",{},[T("tick")]).Listen("click",tick),
+                    E("label",{for:"vmSpeed",id:"vmSpeed_label"},[]),
+                    E("input",{type:"range",id:"vmSpeed",min:0,max:1000,step:1,value:0},[]).Listen("input",()=>{
+                        (document.querySelector("#vmSpeed_label") as HTMLLabelElement).innerText = (document.querySelector("#vmSpeed") as HTMLInputElement).value;
+                        updateLogiAnaGraph();
+                    }),
                 ]),
                 E("div",{class:"prop"},[
                     E("label",{for:"digiAnaLastN",id:"digiAnaLastN_label"},[]),
@@ -221,6 +224,7 @@ async function run() {
         }
     )
     {
+        (document.querySelector("#vmSpeed_label") as HTMLLabelElement).innerText = (document.querySelector("#vmSpeed") as HTMLInputElement).value;
         (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;
     }
     {
