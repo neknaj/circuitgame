@@ -48,20 +48,27 @@ async function update() {
     const input = ace.edit("editor").getValue();
     const result = CompilerIntermediateProducts(input);
     console.log(result);
-    console.log(result.module_dependency_sorted[0]);
-    try {
-        const test_result = Test(input);
-        console.log(test_result);
-        for (let name of Object.keys(test_result.test_result)) {
-            console.log(`test: ${name}`);
-            console.table(test_result.test_result[name]);
-        }
-    }
-    catch (e) {
-        console.error(e);
-    }
+    // console.log(result.module_dependency_sorted[0]);
+    const test_result = Test(input);
+    console.log(test_result);
+    // for (let name of Object.keys(test_result.test_result)) {
+    //     console.log(`test: ${name}`);
+    //     console.table(test_result.test_result[name]);
+    // }
     // VM
+    setErrMsg(result,test_result);
     VMinit(document.querySelector("#vm"),result);
+}
+
+function setErrMsg(compiler_products: IntermediateProducts,test_products: TestProducts) {
+    { // リスト
+        let elm = document.querySelector("#errMsgArea");
+        elm.innerHTML = "";
+        elm.Add(E("ul",{},compiler_products.errors.map(x=>E("li",{class:"error"},[T(x)]))));
+        elm.Add(E("ul",{},compiler_products.warns.map(x=>E("li",{class:"warn"},[T(x)]))));
+        elm.Add(E("ul",{},test_products.errors.map(x=>E("li",{class:"error"},[T(x)]))));
+        elm.Add(E("ul",{},test_products.warns.map(x=>E("li",{class:"warn"},[T(x)]))));
+    }
 }
 
 
@@ -121,7 +128,7 @@ ${output_wires}
     }
 }
 
-import { Module } from './types.js';
+import { Module, TestProducts } from './types.js';
 function constructGraph(product: IntermediateProducts,module_name: string,offset: number=0,subgraph=0): [string,number,number] {
     if (module_name=="nor") { return [`nor${offset}\n`,offset+1,subgraph]; }
     const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
@@ -154,15 +161,18 @@ async function run() {
     initlayout(
         document.querySelector("#layoutroot"),
         ["h",[3,1],[
-            ["v",[2,1],[
-                ["h",[1,3],[
-                    ["v",[2,1],[
-                        ["c","vmArea"],
-                        ["c","vmCtrlArea"],
+            ["h",[3,1],[
+                ["v",[2,1],[
+                    ["h",[1,3],[
+                        ["v",[2,1],[
+                            ["c","vmArea"],
+                            ["c","vmCtrlArea"],
+                        ]],
+                        ["c","graph1Area"],
                     ]],
-                    ["c","graph1Area"],
+                    ["c","graph2Area"],
                 ]],
-                ["c","graph2Area"],
+                ["c","errMsgArea"],
             ]],
             ["c","editArea"],
         ]],
@@ -180,6 +190,7 @@ async function run() {
                 ]),
                 E("div",{id:"editor"},[]),
             ]),
+            errMsgArea: ()=>{return E("div",{id:"errMsgArea"},[])},
             vmCtrlArea: ()=>E("div",{id:"vm_ctrl_area"},[
                 E("div",{class:"prop"},[
                     E("input",{type:"checkbox",id:"graph1_switch",checked:true},[]).Listen("change",()=>{

@@ -63,6 +63,25 @@
         }
     }
 
+    #errMsgArea {
+        &>ul {
+            list-style: none;
+            padding: 0;
+        }
+        & li.error {
+            background-color: #ff001510;
+            padding-left: 10px;
+            border-left: 2px solid #ff001930;
+            margin: 5px;
+        }
+        & li.warn {
+            background-color: #ffc40010;
+            padding-left: 10px;
+            border-left: 2px solid #ffbf0030;
+            margin: 5px;
+        }
+    }
+
     #graph2 {
         overflow: hidden;
         height: 100%;
