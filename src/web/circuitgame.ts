@@ -11,9 +11,11 @@ function CompilerIntermediateProducts(code: string): IntermediateProducts {
     return result_from_rust;
 }
 function Test(input: string): TestProducts {
-    let result_from_rust: any = JSON.parse(Test_raw(input));
+    const res = Test_raw(input);
+    if (res[0]!="{") { return {warns:[],errors:[],test_list:[],test_result:{}}; } // コンパイルエラーは空の結果を返す
+    let result_from_rust: any = JSON.parse(res);
     if (!isTestProducts(result_from_rust)) {
-        throw new Error('Rustからの返り値が期待する形式と一致しません');
+        throw new Error('Rustからの返り値が期待する形式と一致しません'); // 型がおかしいのはthrow
     }
     return result_from_rust
 }
@@ -28,6 +30,6 @@ const VM = {
     next: VMnext,
 }
 
-export { CompilerIntermediateProducts, Test, Compile, VM};
+export { CompilerIntermediateProducts, Test as NCG_Test, Compile, VM};
 export { IntermediateProducts, TestProducts };
 export default init;

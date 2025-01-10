@@ -1,4 +1,4 @@
-import init, { Compile, CompilerIntermediateProducts, Test, IntermediateProducts } from './circuitgame.js';
+import init, { Compile, NCG_Test, CompilerIntermediateProducts, IntermediateProducts } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
 import VMinit, { tick, updateLogiAnaGraph } from './vm.js';
 
@@ -67,7 +67,7 @@ async function update() {
     const result = CompilerIntermediateProducts(input);
     console.log(result);
     // console.log(result.module_dependency_sorted[0]);
-    const test_result = Test(input);
+    const test_result  = NCG_Test(input);
     console.log(test_result);
     // for (let name of Object.keys(test_result.test_result)) {
     //     console.log(`test: ${name}`);
@@ -175,7 +175,7 @@ ${output_wires}
     }
 }
 
-import { Module, TestProducts } from './types.js';
+import { Module, Test, TestProducts } from './types.js';
 function constructGraph(product: IntermediateProducts,module_name: string,offset: number=0,subgraph=0): [string,number,number] {
     if (module_name=="nor") { return [`nor${offset}\n`,offset+1,subgraph]; }
     const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};

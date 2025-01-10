@@ -14,9 +14,12 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     if (selected!=null&&product.module_dependency_sorted.includes(selected)==false) { selected = null; }
     if (module_name == null) {
         if (selected == null) { selected = product.module_dependency_sorted[0]; }
+        if (selected == null) { return; }
         module_name = selected;
     }
-    vm_id = VM.init(Compile(product.source,module_name));
+    const binary = Compile(product.source,module_name);
+    if (binary.length==0) { console.warn("compiling error") ;return; }
+    vm_id = VM.init(binary);
 
     const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
     elm.innerHTML = "";
@@ -39,7 +42,6 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     }));
     //
     product.module_type_list
-    console.log(Compile(product.source,module_name));
     const moduleType = product.module_type_list.filter(m=>m.name==module_name)[0];
     console.log(moduleType);
     elm.Add(E("h2",{},[T(module_name)]));
