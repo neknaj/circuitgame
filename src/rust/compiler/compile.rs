@@ -1,6 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-use colored::Colorize;
 
 use super::types::*;
 

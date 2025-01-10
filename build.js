@@ -36,7 +36,7 @@ function buildTS() {
 async function buildRust() {
     try {
         // wasm-packコマンドを実行
-        const { stdout, stderr } = await execPromise('wasm-pack build --target web --features web');
+        const { stdout, stderr } = await execPromise('wasm-pack build --target web --no-default-features --features web');
         process.stdout.write(stdout);
         if (stderr) {
             process.stderr.write(stderr);
