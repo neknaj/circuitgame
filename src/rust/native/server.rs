@@ -146,7 +146,7 @@ async fn start_websocket_server(ws_tx: broadcast::Sender<String>,input_path: Str
             .await
             .expect("Error during WebSocket handshake");
 
-        println!("New WebSocket connection!");
+        // println!("New WebSocket connection!");
 
         let ws_tx = ws_tx.clone();
         let input_path_clone = input_path.clone();
@@ -176,7 +176,7 @@ async fn handle_connection(
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = ws_receiver.next().await {
             if let Message::Text(text) = msg {
-                println!("Received message: {}", text);
+                // println!("Received message: {}", text);
                 if (text.starts_with("get file")) { // websocketでファイルを送信
                     let input = match std::fs::read_to_string(&input_path) {
                         Ok(v) => v,
@@ -215,11 +215,11 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
 
         tokio::select! {
             Ok(message) = rx.recv() => {
-                println!("done {}", message);
+                // println!("done {}", message);
                 // ファイル変更を検知した場合の処理を追加
             }
             _ = runVM(binary, vmset_tx_clone,ws_tx_clone) => {
-                println!("VM execution completed");
+                // println!("VM execution completed");
             }
         }
     }

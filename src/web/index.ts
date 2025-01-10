@@ -37,7 +37,7 @@ function initWebSocket(path) {
         const message = event.data as string;
         console.log(message)
         if (message.startsWith("file:")) {
-            editor.setValue(message.slice(5));
+            editor.setValue(`# received from ${path}\n\n${message.slice(5)}`);
             editor.moveCursorTo(0, 0);
         }
     };
@@ -335,6 +335,17 @@ async function run() {
         mermaid.initialize({
             maxEdges: 1000
         })
+    }
+    { // urlパラメータ
+        let param = new URLSearchParams(new URL(location.href).search);
+        console.log(param);
+        if (param.has("socket")) {
+            (document.querySelector("#webSocketURL") as HTMLInputElement).value = param.get("socket");
+            (document.querySelector("#webSocket") as HTMLInputElement).checked = true;
+            document.querySelector("#webSocketURL").classList.remove("hide");
+            editor.setReadOnly(true);
+            initWebSocket((document.querySelector("#webSocketURL") as HTMLInputElement).value);
+        }
     }
     // update();
 }
