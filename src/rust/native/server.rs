@@ -30,8 +30,6 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
     let (vmset_tx, _vmset_rx) = broadcast::channel::<u32>(100); // ncg処理 (file change 通知)
 
-    // HTTPサーバーを起動
-    tokio::spawn(start_http_server());
     // WebSocketサーバーを起動
     let ws_tx_clone = ws_tx.clone();
     tokio::spawn(start_websocket_server(ws_tx_clone));
@@ -136,16 +134,6 @@ async fn key_watch(ws_tx: broadcast::Sender<String>,vmset_tx: broadcast::Sender<
         // 少し待つ
         sleep(Duration::from_millis(10)).await;
     }
-}
-
-async fn start_http_server() {
-    let index = warp::path::end().map(|| {
-        warp::reply::html(include_str!("index.html"))
-    });
-
-    warp::serve(index)
-        .run(([127, 0, 0, 1], 8080))
-        .await;
 }
 
 async fn start_websocket_server(ws_tx: broadcast::Sender<String>) {
