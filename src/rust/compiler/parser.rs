@@ -58,6 +58,17 @@ fn module_keyword(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
+fn func_keyword(input: &str) -> IResult<&str, &str> {
+    alt((
+        tag("func"),
+        tag("Func"),
+        tag("FUNC"),
+        tag("fn"),
+        tag("Fn"),
+        tag("FN"),
+    ))(input)
+}
+
 fn test_keyword(input: &str) -> IResult<&str, &str> {
     alt((
         tag("test"),
@@ -224,6 +235,36 @@ fn module(input: &str) -> IResult<&str, Module> {
             ),
         )),
         |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
+            func: false,
+            name,
+            inputs,
+            outputs,
+            gates,
+        },
+    )(input)
+}
+
+fn func_module(input: &str) -> IResult<&str, Module> {
+    map(
+        tuple((
+            func_keyword,
+            multispace0,
+            identifier,
+            multispace0,
+            io_list,
+            multispace0,
+            right_arrow,
+            multispace0,
+            io_list,
+            separator,
+            delimited(
+                char('{'),
+                many0(delimited(separator, gate, separator)),
+                char('}'),
+            ),
+        )),
+        |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
+            func: true,
             name,
             inputs,
             outputs,
@@ -306,6 +347,7 @@ fn component(input: &str) -> IResult<&str, Component> {
     alt((
         map(using, Component::Using),
         map(module, Component::Module),
+        map(func_module, Component::Module),
         map(test, Component::Test),
     ))(input)
 }

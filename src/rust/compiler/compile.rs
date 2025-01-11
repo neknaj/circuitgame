@@ -12,6 +12,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
     for module_name in modules.iter().rev() {
         if module_name=="nor" {
             expanded_modules.insert(module_name.clone(),CompiledModule {
+                func: true,
                 inputs: 2,
                 outputs: vec![0],
                 gates: vec![(CompiledGateInput::Input(0),CompiledGateInput::Input(1))]
@@ -105,6 +106,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
         }
         // expanded_modulesに追加
         expanded_modules.insert(module_name.clone(),CompiledModule {
+            func: module.func,
             inputs: module.inputs.len() as u32,
             outputs: outputs,
             gates: expanded,
