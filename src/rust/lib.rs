@@ -4,6 +4,7 @@ mod compiler;
 mod test;
 mod vm;
 mod resourcemanager;
+mod transpiler;
 
 use rand::seq::index;
 use wasm_bindgen::prelude::*;

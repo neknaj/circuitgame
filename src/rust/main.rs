@@ -1,6 +1,7 @@
 mod compiler;
 mod test;
 mod vm;
+mod transpiler;
 use clap::Parser;
 mod native;
 

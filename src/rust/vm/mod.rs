@@ -1,5 +1,5 @@
 pub mod types;
-mod deserializer;
+pub mod deserializer;
 
 use types::*;
 

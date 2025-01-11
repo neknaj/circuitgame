@@ -26,6 +26,19 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     };
     index += 1;
 
+    // Deserialize name
+    if index >= data.len() {
+        return Err("Data is too short to contain name length".to_string());
+    }
+    let name_len = data[index] as usize;
+    index += 1;
+
+    if index + name_len > data.len() {
+        return Err("Data is too short to contain name".to_string());
+    }
+    let name = data[index..index + name_len].to_vec().into_iter().filter_map(std::char::from_u32).collect();
+    index += name_len;
+
     // Deserialize inputs
     if index >= data.len() {
         return Err("Data is too short to contain inputs".to_string());
@@ -69,6 +82,7 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
 
     Ok(Module {
         func,
+        name,
         inputs,
         outputs,
         gates,

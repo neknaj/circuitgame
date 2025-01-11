@@ -87,6 +87,7 @@ pub type CompiledGate = (CompiledGateInput,CompiledGateInput);
 #[derive(Debug, Clone, Serialize)]
 pub struct CompiledModule {
     pub func: bool,
+    pub name: String,
     pub inputs: u32,
     pub outputs: Vec<u32>,
     pub gates: Vec<CompiledGate>,

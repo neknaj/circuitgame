@@ -13,6 +13,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
         if module_name=="nor" {
             expanded_modules.insert(module_name.clone(),CompiledModule {
                 func: true,
+                name: "nor".to_string(),
                 inputs: 2,
                 outputs: vec![0],
                 gates: vec![(CompiledGateInput::Input(0),CompiledGateInput::Input(1))]
@@ -107,6 +108,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
         // expanded_modulesに追加
         expanded_modules.insert(module_name.clone(),CompiledModule {
             func: module.func,
+            name: module_name.clone(),
             inputs: module.inputs.len() as u32,
             outputs: outputs,
             gates: expanded,
@@ -124,8 +126,12 @@ pub fn serialize_to_vec(module: CompiledModule) -> Vec<u32> {
     result.push(0x6247434e);
     // Add data size
     result.push(32); // 32bits (u32)
-    // func module
+    // Add func module flag
     result.push(if module.func {1} else {0});
+    // Add func name
+    let encoded = module.name.chars().map(|c| c as u32).collect::<Vec<u32>>();
+    result.push(encoded.len() as u32);
+    result.extend(encoded);
     // Serialize inputs
     result.push(module.inputs);
     // Serialize outputs
