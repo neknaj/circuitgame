@@ -24,8 +24,7 @@ func true (any)->(true) {
 
 func false (any)->(false) {
     a: not <- any;
-    b: not <- any;
-    false: nor <- a b;
+    false: nor <- any a;
 }
 
 // 基本的なゲート
