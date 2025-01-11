@@ -11,7 +11,7 @@ class CustomHighlightRules extends TextHighlightRules {
             start: [
                 {
                     token: "keyword.control",
-                    regex: "\\b(?:using|Using|USING|use|Use|USE|module|Module|MODULE|def|Def|DEF|test|Test|TEST)\\b",
+                    regex: "\\b(?:using|Using|USING|use|Use|USE|module|Module|MODULE|def|Def|DEF|func|Func|FUNC|fn|Fn|FN|test|Test|TEST)\\b",
                 },
 
                 {
@@ -36,7 +36,7 @@ class CustomHighlightRules extends TextHighlightRules {
 
                 {
                     token: "identifier",
-                    regex: "\\b[0-9a-zA-Z]+\\b",
+                    regex: "\\b[0-9a-zA-Z_]+\\b",
                 },
 
                 {
