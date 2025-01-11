@@ -126,6 +126,10 @@ async function main() {
             "./spec/icon.ico",
             "./dist/favicon.ico"
         ],
+        [
+            "./spec/icon.png",
+            "./dist/icon.png"
+        ],
     ]);
 }
 
