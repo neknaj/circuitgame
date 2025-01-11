@@ -111,6 +111,13 @@ module impulse()->(c) {
 // テストを定義する
 //
 
+test nor:2->1 {
+    t t -> f;
+    t f -> f;
+    f t -> f;
+    f f -> t;
+}
+
 test true:1->1 {
     t -> t;
     f -> t;

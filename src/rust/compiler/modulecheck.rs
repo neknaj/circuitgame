@@ -1,7 +1,10 @@
 use super::types::*;
 
-pub fn collect_modules(ast: &File) -> Vec<ModuleType> {
+/// @return defined_non-func_module_list, defined_func_module_list, module_type_list
+pub fn collect_modules(ast: &File) -> (Vec<String>,Vec<String>,Vec<ModuleType>) {
     let mut modules = Vec::new();
+    let mut func_modules = Vec::new();
+    let mut non_func_modules = Vec::new();
 
     // NOR:2->1 は常に宣言される
     modules.push(
@@ -10,6 +13,7 @@ pub fn collect_modules(ast: &File) -> Vec<ModuleType> {
             mtype: MType { input_count: 2, output_count: 1 },
         }
     );
+    func_modules.push("nor".to_string());
 
     // ASTの中で定義されたモジュールを集める
     for component in &ast.components {
@@ -21,11 +25,17 @@ pub fn collect_modules(ast: &File) -> Vec<ModuleType> {
                         mtype: MType { input_count: module.inputs.len(), output_count: module.outputs.len() },
                     }
                 );
+                if module.func {
+                    func_modules.push(module.name.clone());
+                }
+                else {
+                    non_func_modules.push(module.name.clone());
+                }
             },
             _ => {} // モジュールでなければ何もしない
         }
     }
-    return modules;
+    return (non_func_modules,func_modules,modules);
 }
 
 pub fn check_module_name_duplicates(modules: &Vec<ModuleType>) -> Result<(),Vec<String>> {

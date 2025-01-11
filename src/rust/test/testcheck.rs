@@ -24,12 +24,23 @@ pub fn check_test_name_duplicates(modules: &Vec<String>) -> Result<(),Vec<String
     else { Err(errors) }
 }
 
-pub fn check_test_missing(provided_tests: &Vec<String>,defined_modules: &Vec<String>) -> Vec<String> {
+pub fn check_test_missing(provided_tests: &Vec<String>,product: &crate::compiler::types::IntermediateProducts) -> (Vec<String>,Vec<String>) {
     let mut warns = Vec::new();
-    for module in defined_modules {
-        if !provided_tests.contains(module)&&module!="nor" {
+    let mut errors = Vec::new();
+    for module in &product.defined_func_module_list {
+        if !provided_tests.contains(module) {
             warns.push(format!("No test provided for module: {}",module));
         }
     }
-    warns
+    for module in provided_tests {
+        if !product.defined_func_module_list.contains(module) {
+            if !product.defined_non_func_module_list.contains(module) {
+                errors.push(format!("Undefined module used: {}",module));
+            }
+            else {
+                errors.push(format!("Testing non-function modules: {}",module));
+            }
+        }
+    }
+    (warns,errors)
 }

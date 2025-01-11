@@ -96,12 +96,14 @@ pub struct CompiledModule {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct IntermediateProducts {
-    pub source                  : String,
-    pub warns                   : Vec<String>,
-    pub errors                  : Vec<String>,
-    pub ast                     : File,
-    pub module_type_list        : Vec<ModuleType>,
-    pub module_dependency       : Vec<NodeDepends>,
-    pub module_dependency_sorted: Vec<String>,
-    pub expanded_modules        : std::collections::HashMap<String,CompiledModule>,
+    pub source                      : String,
+    pub warns                       : Vec<String>,
+    pub errors                      : Vec<String>,
+    pub ast                         : File,
+    pub defined_non_func_module_list: Vec<String>,
+    pub defined_func_module_list    : Vec<String>,
+    pub module_type_list            : Vec<ModuleType>,
+    pub module_dependency           : Vec<NodeDepends>,
+    pub module_dependency_sorted    : Vec<String>,
+    pub expanded_modules            : std::collections::HashMap<String,CompiledModule>,
 }

@@ -14,7 +14,7 @@ pub fn test_gates(
                 // moduleの型を取得
                 let module_type = match module_type_list.iter().find(|m| m.name==test.name).map(|m| &m.mtype) {
                     Some(mtype) => mtype.clone(),
-                    None => { errors.push(format!("Undefined module used: {}",test.name));break; },
+                    None => { break; },
                 };
                 // patternがtypeに合致するかを確認
                 for pattern in &test.patterns {
@@ -40,8 +40,8 @@ pub fn test_gates(
                         let _ = vm.set(input_index, *input);
                         input_index+=1;
                     }
-                    // vmを数ステップ進める <- todo: 指定できるようにする
-                    let _ = vm.next(1000);
+                    // vmを1ステップ進める
+                    let _ = vm.next(1);
                     // 出力を取得する
                     let output = match vm.get_output() {
                         Ok(v) => v,

@@ -8,7 +8,9 @@ pub fn test(products: crate::compiler::types::IntermediateProducts) -> types::Te
     // 1, テスト定義の一覧を作成
     test_products.test_list = collect_tests(&products.ast);
     // 2, テストの名前に不足がないかを確認 -> warn
-    test_products.warns.extend(check_test_missing(&test_products.test_list, &products.module_dependency_sorted));
+    let check_res = check_test_missing(&test_products.test_list, &products);
+    test_products.warns.extend(check_res.0);
+    test_products.errors.extend(check_res.1);
     // 3, テストの名前に重複がないかを確認 -> err
     match check_test_name_duplicates(&test_products.test_list) {
         Ok(()) => {},

@@ -26,14 +26,17 @@ pub fn serialize(products: IntermediateProducts,module: &str) -> Result<Vec<u32>
 pub fn intermediate_products(input: &str) -> types::IntermediateProducts {
     use modulecheck::*;
     use compile::*;
-    let mut products = types::IntermediateProducts { source: input.to_string() ,warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() } , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new(), expanded_modules: std::collections::HashMap::new() };
+    let mut products = types::IntermediateProducts { source: input.to_string() ,warns: Vec::new(), errors: Vec::new(), ast: types::File { components: Vec::new() }, defined_non_func_module_list: Vec::new(), defined_func_module_list: Vec::new() , module_type_list: Vec::new(), module_dependency: Vec::new(), module_dependency_sorted: Vec::new(), expanded_modules: std::collections::HashMap::new() };
     // 0, パース
     products.ast = match parser::parser(input).map_err(|err| format!("[Parser error]\n{}", err)) {
         Ok(ast) => ast,
         Err(msg) => {products.errors.push(msg);return products;},
     };
     // 1, モジュール定義の一覧を作成
-    products.module_type_list = collect_modules(&products.ast);
+    let modules_info = collect_modules(&products.ast);
+    products.defined_non_func_module_list = modules_info.0;
+    products.defined_func_module_list = modules_info.1;
+    products.module_type_list = modules_info.2;
     // 2, モジュールの名前に重複がないかを確認
     match check_module_name_duplicates(&products.module_type_list) {
         Ok(()) => {},
