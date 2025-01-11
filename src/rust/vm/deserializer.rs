@@ -15,6 +15,17 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     }
     index += 1;
 
+    // Func Module flag
+    if index >= data.len() {
+        return Err("Data is too short to contain func module flag".to_string());
+    }
+    let func = match data[index] {
+        0 => false,
+        1 => true,
+        _ => {return Err("Unsupported func module flag".to_string());},
+    };
+    index += 1;
+
     // Deserialize inputs
     if index >= data.len() {
         return Err("Data is too short to contain inputs".to_string());
@@ -57,6 +68,7 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     cond.resize(gates.len()+inputs as usize, false);
 
     Ok(Module {
+        func,
         inputs,
         outputs,
         gates,

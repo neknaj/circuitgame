@@ -124,6 +124,8 @@ pub fn serialize_to_vec(module: CompiledModule) -> Vec<u32> {
     result.push(0x6247434e);
     // Add data size
     result.push(32); // 32bits (u32)
+    // func module
+    result.push(if module.func {1} else {0});
     // Serialize inputs
     result.push(module.inputs);
     // Serialize outputs
