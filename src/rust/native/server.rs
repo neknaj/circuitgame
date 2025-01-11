@@ -73,7 +73,7 @@ async fn watch_file(path: String, ws_tx: broadcast::Sender<String>, fc_tx: broad
     println!("Watching for changes in: {}", path);
     // デバウンス用の状態管理
     let mut last_events: HashMap<String, Instant> = HashMap::new();
-    let debounce_duration = Duration::from_millis(500); // 500msのデバウンス時間
+    let debounce_duration = Duration::from_millis(1); // 1msのデバウンス時間
     while let Some(event) = watcher_rx.recv().await {
         let path_str = event.paths.first()
             .and_then(|p| p.to_str())
