@@ -99,6 +99,7 @@ async function update() {
     // }
     // VM
     setErrMsg(result,test_result);
+    setModuleInfo(result);
     VMinit(document.querySelector("#vm"),result);
 }
 
@@ -140,6 +141,30 @@ function setErrMsg(compiler_products: IntermediateProducts,test_products: TestPr
             return detail;
         }
     ));
+}
+
+function setModuleInfo(product: IntermediateProducts) {
+    console.log("modules",product.ast.components.filter(x=>x.type=="Module").map(x=>x.name));
+    document.querySelector("#moduleInfo").Replace([E("table",{},[
+        E("thead",{},[
+            E("tr",{},[
+                E("th",{},[T("Name")]),
+                E("th",{},[T("Type")]),
+                E("th",{},[T("Size")]),
+            ])
+        ]),
+        E("tbody",{},product.ast.components.filter(x=>x.type=="Module").map(x=>x.name).map(
+            name=>E("tr",{},[
+                E("th",{},[T(name)]),
+                E("td",{},[
+                    T(product.expanded_modules[name].inputs),
+                    E("span",{class:"dark"},[T("->")]),
+                    T(product.expanded_modules[name].outputs.length),
+                ]),
+                E("td",{},[T(product.expanded_modules[name].gates.length)]),
+            ])
+        )),
+    ])]);
 }
 
 
@@ -231,26 +256,30 @@ async function run() {
     await init();
     initlayout(
         document.querySelector("#layoutroot"),
-        ["h",[3,1],[
-            ["h",[3,1],[
-                ["v",[2,1],[
-                    ["h",[1,3],[
-                        ["v",[2,1],[
-                            ["c","vmArea"],
-                            ["c","vmCtrlArea"],
+        ["h",[4,1],[
+            ["h",[1,5],[
+                ["c","moduleInfo"],
+                ["h",[3,1],[
+                    ["v",[2,1],[
+                        ["h",[1,3],[
+                            ["v",[2,1],[
+                                ["c","vmArea"],
+                                ["c","vmCtrlArea"],
+                            ]],
+                            ["c","graph1Area"],
                         ]],
-                        ["c","graph1Area"],
+                        ["c","graph2Area"],
                     ]],
-                    ["c","graph2Area"],
+                    ["v",[3,3],[
+                        ["c","errMsgArea"],
+                        ["c","testResult"],
+                    ]]
                 ]],
-                ["v",[3,3],[
-                    ["c","errMsgArea"],
-                    ["c","testResult"],
-                ]]
             ]],
             ["c","editArea"],
         ]],
         {
+            moduleInfo: ()=>{return E("div",{id:"moduleInfo"},[])},
             vmArea: ()=>{return E("div",{id:"vm"},[])},
             graph1Area: ()=>{return E("div",{id:"graph1"},[])},
             graph2Area: ()=>{return E("div",{id:"graph2"},[])},
@@ -259,7 +288,7 @@ async function run() {
                     E("input",{type:"button",value:"compile"},[]).Listen("click",update),
                     E("span",{},[
                         E("input",{type:"checkbox",id:"autoCompile",checked:true},[]),
-                        E("label",{for:"autoCompile"},[T("auto compile")]),
+                        E("label",{for:"autoCompile"},[T("compile")]),
                     ]),
                     E("input",{type:"checkbox",id:"webSocket"},[]).Listen("change",()=>{
                         if ((document.querySelector("#webSocket") as HTMLInputElement).checked) {
@@ -275,7 +304,7 @@ async function run() {
                             } catch (e) {}
                         }
                     }),
-                    E("label",{for:"webSocket"},[T("webSocket")]),
+                    E("label",{for:"webSocket"},[T("Server")]),
                     E("input",{type:"url",id:"webSocketURL"},[]).Listen("change",()=>{
                         if ((document.querySelector("#webSocket") as HTMLInputElement).checked) {
                             document.querySelector("#webSocketURL").classList.remove("hide");
