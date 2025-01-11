@@ -26,7 +26,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     elm.innerHTML = "";
     console.log("module",module_name,selected);
     // module選択のドロップダウンメニューを追加
-    elm.Add(E("select",{},product.module_dependency_sorted.map(
+    elm.Add(E("select",{},product.ast.components.filter(x=>x.type=="Module").map(x=>x.name).map(
         (m,i) => {
             let option = E("option",{value:m},[T(m)]);
             if (m==selected) { option.setAttribute("selected","true"); }
