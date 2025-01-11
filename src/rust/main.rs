@@ -12,6 +12,8 @@ struct Opt {
     input: Option<String>,
     #[arg(short = 'o', long = "output", value_name = "Output File Path")]
     output: Option<String>,
+    #[arg(short = 'd', long = "doc output", value_name = "Document output File Path")]
+    doc_output: Option<String>,
     #[arg(short = 'm', long = "module", value_name = "Name of module to compile")]
     module: Option<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
@@ -32,13 +34,12 @@ async fn main() {
             return;
         },
     };
-    let output_path = opt.output;
     let server_launch = opt.server.unwrap_or(false);
     if !server_launch {
-        native::withoutserver::main(input_path, output_path, opt.module);
+        native::withoutserver::main(input_path,opt.output, opt.doc_output, opt.module);
     }
     else {
-        native::server::main(input_path, output_path, opt.module).await;
+        native::server::main(input_path, opt.output, opt.doc_output, opt.module).await;
     }
     return;
 }

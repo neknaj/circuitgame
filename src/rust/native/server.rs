@@ -2,6 +2,7 @@ use super::super::test;
 use super::super::vm;
 use super::super::compiler;
 use colored::*;
+use crate::native::document::document;
 
 use crossterm::{
     cursor,
@@ -24,7 +25,7 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Option<String>, module: Option<String>) {
+pub async fn main(input_path: String, output_path: Option<String>, doc_output_path: Option<String>, module: Option<String>) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
@@ -56,7 +57,7 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
     let ws_tx_clone = ws_tx.clone();
     let fc_tx_clone = fc_tx.clone();
     let vmset_tx_clone = vmset_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module)});
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -204,11 +205,11 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Option<String>, doc_output_path: Option<String>) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
-        let binary = process_input(&input_path,module.clone());
+        let binary = process_input(&input_path,module.clone(),output_path.clone(),doc_output_path.clone());
 
         let vmset_tx_clone = vmset_tx.clone();
         let ws_tx_clone = ws_tx.clone();
@@ -226,7 +227,7 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
 }
 
 // 入力処理を別関数として分離
-fn process_input(input_path: &str,module: Option<String>) -> Vec<u32> {
+fn process_input(input_path: &str,module: Option<String>, output_path: Option<String>, doc_output_path: Option<String>) -> Vec<u32> {
     // 画面クリア
     print!("\x1B[2J\x1B[1;1H");  // ANSIエスケープシーケンスでクリア
 
@@ -276,13 +277,47 @@ fn process_input(input_path: &str,module: Option<String>) -> Vec<u32> {
         }
     };
 
-    let test_result = test::test(result);
+    let test_result = test::test(result.clone());
     for i in &test_result.warns {
         println!("{}:{} {}","[warn]".yellow(),"test".cyan(),i);
     }
     for i in &test_result.errors {
         println!("{}:{} {}","[error]".red(),"test".cyan(),i);
     }
+
+    // コンパイル結果をoutput
+    match output_path {
+        Some(v)=> {
+            if let Err(e) = write_binary_file(v.as_str(), binary.clone()) {
+                println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+            } else {
+                println!("{}:{} Output completed","[info]".green(),"output".cyan());
+            }
+        },
+        None => {
+            println!("{}:{} No output path specified in command line arguments","[info]".green(),"output".cyan());
+            println!("{:?}",binary);
+        }
+    }
+    match document(result.clone()) {
+        Ok(doc_str)=>{
+            match doc_output_path {
+                Some(v)=> {
+                    if let Err(e) = write_text_file(v.as_str(), &doc_str) {
+                        println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                    } else {
+                        println!("{}:{} document output completed","[info]".green(),"output".cyan());
+                    }
+                },
+                None => {
+                    println!("{}:{} No document output path specified in command line arguments","[info]".green(),"output".cyan());
+                }
+            }
+        },
+        Err(v)=>{
+            println!("{}:{} {}","[error]".red(),"document".cyan(),v);
+        }
+    };
 
     binary
 }
@@ -326,4 +361,31 @@ async fn runVM(data: Vec<u32>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcas
         // 必要に応じて短い待機を入れる
         tokio::time::sleep(Duration::from_millis(1)).await;
     }
+}
+
+
+
+
+fn write_binary_file(filename: &str, data: Vec<u32>) -> std::io::Result<()> {use std::fs::File;
+    use byteorder::{LittleEndian, WriteBytesExt};
+    // ファイルの作成
+    let mut file = File::create(filename)
+        .map_err(|e| std::io::Error::new(e.kind(), format!("ファイル作成に失敗しました: {}", e)))?;
+
+    // データの書き込み
+    for &value in &data {
+        file.write_u32::<LittleEndian>(value)
+            .map_err(|e| std::io::Error::new(e.kind(), format!("データ書き込みに失敗しました: {}", e)))?;
+    }
+
+    Ok(())
+}
+
+fn write_text_file(file_path: &str, content: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut file = std::fs::File::create(file_path)
+        .map_err(|e| std::io::Error::new(e.kind(), format!("ファイル作成に失敗しました: {}", e)))?;
+    file.write_all(content.as_bytes())
+        .map_err(|e| std::io::Error::new(e.kind(), format!("データ書き込みに失敗しました: {}", e)))?;
+    Ok(())
 }

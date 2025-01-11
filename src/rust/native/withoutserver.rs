@@ -1,9 +1,14 @@
+use std::io::Write;
+
+use crate::native::document::document;
+
 use super::super::test;
 use super::super::vm;
 use super::super::compiler;
+use super::document;
 use colored::*;
 
-pub async fn main(input_path: String, output_path: Option<String>, module: Option<String>) {
+pub async fn main(input_path: String, output_path: Option<String>, doc_output_path: Option<String>, module: Option<String>) {
     // inputを読み込み
     println!("{}:{} input file: {}","[info]".green(),"input".cyan(),input_path.clone());
     let input = match std::fs::read_to_string(input_path) {
@@ -43,7 +48,7 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
             return;
         }
     };
-    let test_result = test::test(result);
+    let test_result = test::test(result.clone());
     for i in &test_result.warns {
         println!("{}:{} {}","[warn]".yellow(),"test".cyan(),i);
     }
@@ -64,6 +69,25 @@ pub async fn main(input_path: String, output_path: Option<String>, module: Optio
             println!("{:?}",binary);
         }
     }
+    let doc_str = match document(result.clone()) {
+        Ok(v)=>v,
+        Err(v)=>{
+            println!("{}:{} {}","[error]".red(),"document".cyan(),v);
+            return;
+        }
+    };
+    match doc_output_path {
+        Some(v)=> {
+            if let Err(e) = write_text_file(v.as_str(), &doc_str) {
+                println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+            } else {
+                println!("{}:{} document output completed","[info]".green(),"output".cyan());
+            }
+        },
+        None => {
+            println!("{}:{} No document output path specified in command line arguments","[info]".green(),"output".cyan());
+        }
+    }
 }
 
 fn write_binary_file(filename: &str, data: Vec<u32>) -> std::io::Result<()> {use std::fs::File;
@@ -78,5 +102,13 @@ fn write_binary_file(filename: &str, data: Vec<u32>) -> std::io::Result<()> {use
             .map_err(|e| std::io::Error::new(e.kind(), format!("データ書き込みに失敗しました: {}", e)))?;
     }
 
+    Ok(())
+}
+
+fn write_text_file(file_path: &str, content: &str) -> std::io::Result<()> {
+    let mut file = std::fs::File::create(file_path)
+        .map_err(|e| std::io::Error::new(e.kind(), format!("ファイル作成に失敗しました: {}", e)))?;
+    file.write_all(content.as_bytes())
+        .map_err(|e| std::io::Error::new(e.kind(), format!("データ書き込みに失敗しました: {}", e)))?;
     Ok(())
 }
