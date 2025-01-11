@@ -122,6 +122,10 @@ async function main() {
             "./spec/sample.ncg",
             "./dist/sample.ncg"
         ],
+        [
+            "./spec/icon.ico",
+            "./dist/favicon.ico"
+        ],
     ]);
 }
 
