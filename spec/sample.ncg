@@ -7,45 +7,56 @@ using nor:2->1;
 
 // 定数
 
-module true ()->(a) {
-    a: not <- b;
-    b: not <- a;
+module TRUE ()->(true) {
+    true: not <- false;
+    false: not <- true;
 }
 
-module false ()->(b) {
-    a: not <- b;
-    b: not <- a;
+module FALSE ()->(false) {
+    true: not <- false;
+    false: not <- true;
+}
+
+func true (any)->(true) {
+    a: not <- any;
+    true: or <- any a;
+}
+
+func false (any)->(false) {
+    a: not <- any;
+    b: not <- any;
+    false: nor <- a b;
 }
 
 // 基本的なゲート
 
-module buf (x)->(b) {
+func buf (x)->(b) {
     a: not <- x;
     b: not <- a;
 }
 
-module not (x)->(a) {
+func not (x)->(a) {
     a: nor <- x x;
 }
 
-module and (x y)->(c) {
+func and (x y)->(c) {
     a: not <- x  ;
     b: not <- y  ;
     c: nor <- a b;
 }
 
-module or (x y)->(b) {
+func or (x y)->(b) {
     a: nor <- x y;
     b: not <- a  ;
 }
 
-module nand (x y)->(c) {
+func nand (x y)->(c) {
     a: not <- x  ;
     b: not <- y  ;
     c: or <- a b;
 }
 
-module xor (x y)->(e) {
+func xor (x y)->(e) {
     a: not <- x  ;
     b: not <- y  ;
     c: nor <- a b;
@@ -55,12 +66,12 @@ module xor (x y)->(e) {
 
 // 加算器
 
-module hAddr (x y)->(c s) {
+func hAddr (x y)->(c s) {
     c: and <- x y;
     s: xor <- x y;
 }
 
-module fAddr (x y z)->(c s2) {
+func fAddr (x y z)->(c s2) {
     c1 s1: hAddr <- x y  ;
     c2 s2: hAddr <- s1 z ;
     c    : or    <- c1 c2;
@@ -100,12 +111,14 @@ module impulse()->(c) {
 // テストを定義する
 //
 
-test true:0->1 {
-    -> t;
+test true:1->1 {
+    t -> t;
+    f -> t;
 }
 
-test false:0->1 {
-    -> f;
+test false:1->1 {
+    f -> f;
+    f -> f;
 }
 
 test buf:1->1 {

@@ -40,62 +40,99 @@ pub fn check_module_name_duplicates(modules: &Vec<ModuleType>) -> Result<(),Vec<
     else { Err(errors) }
 }
 
-pub fn check_module_gates(ast: &File, modules: &Vec<ModuleType>) -> Result<(),Vec<String>> {
+pub fn check_module_gates(ast: &File, module_types: &Vec<ModuleType>) -> Result<(),Vec<String>> {
     let mut errors: Vec<String> = Vec::new();
-    // idの宣言,使用に問題がないかを確認
+    // moduleの一覧を作る
+    let mut modules = Vec::new();
     for component in &ast.components {
         match component {
-            Component::Module(module)=>{ // Moduleのみ処理
-                // 宣言された名前の一覧
-                let mut id_names = std::collections::HashSet::new();
-                for input in &module.inputs {
-                    if !id_names.insert(input) {
-                        errors.push(format!("Defined id Duplicated: Input {}",input));
-                    }
-                }
-                for gates in &module.gates {
-                    for output in &gates.outputs {
-                        if !id_names.insert(output) {
-                            errors.push(format!("Defined id Duplicated: Gate-Out {}",output));
-                        }
-                    }
-                }
-                // 宣言されていない名前が使われていないかの確認
-                for output in &module.outputs {
-                    if !id_names.contains(output) {
-                        errors.push(format!("Undefined id used: Output {}",output));
-                    }
-                }
-                for gates in &module.gates {
-                    for input in &gates.inputs {
-                        if !id_names.contains(input) {
-                            errors.push(format!("Undefined id used: Gate-In {}",input));
-                        }
-                    }
-                }
+            Component::Module(module) => {
+                modules.push(module);
             },
-            _ => {} // モジュールでなければ何もしない
+            _ => {},
+        }
+    }
+    // idの宣言,使用に問題がないかを確認
+    for module in &modules {
+        // 宣言された名前の一覧
+        let mut id_names = std::collections::HashSet::new();
+        for input in &module.inputs {
+            if !id_names.insert(input) {
+                errors.push(format!("Defined id Duplicated: Input {}",input));
+            }
+        }
+        for gates in &module.gates {
+            for output in &gates.outputs {
+                if !id_names.insert(output) {
+                    errors.push(format!("Defined id Duplicated: Gate-Out {}",output));
+                }
+            }
+        }
+        // 宣言されていない名前が使われていないかの確認
+        for output in &module.outputs {
+            if !id_names.contains(output) {
+                errors.push(format!("Undefined id used: Output {}",output));
+            }
+        }
+        for gates in &module.gates {
+            for input in &gates.inputs {
+                if !id_names.contains(input) {
+                    errors.push(format!("Undefined id used: Gate-In {}",input));
+                }
+            }
+        }
+        // func_moduleのみの処理
+        if module.func {
+            // 値が宣言の前で使われていないかどうかを確認
+            let mut id_names = std::collections::HashSet::new();
+            for input in &module.inputs {
+                if !id_names.insert(input) {
+                    // 前段でチェックされているのでエラーメッセージは出さない
+                }
+            }
+            for gates in &module.gates {
+                for output in &gates.outputs {
+                    if !id_names.insert(output) {
+                        // 前段でチェックされているのでエラーメッセージは出さない
+                    }
+                }
+                for input in &gates.inputs {
+                    if !id_names.contains(input) {
+                        errors.push(format!("In a function module, a value cannot be used before it is declared {}",input));
+                    }
+                }
+            }
         }
     }
     // moduleの呼び出しに問題がないかを確認
-    for component in &ast.components {
-        match component {
-            Component::Module(module)=>{ // Moduleのみ処理
-                for gate in &module.gates {
-                    match modules.iter().find(|m| m.name==gate.module_name).map(|m| &m.mtype) {
-                        Some(mtype) => { // 使われているモジュールが定義されている場合
-                            // moduleのinput,outputの型を確認
-                            if gate.inputs.len()!=mtype.input_count||gate.outputs.len()!=mtype.output_count {
-                                errors.push(format!("Used module with unmatched type: {} expected {}->{} but got {}->{}",gate.module_name,mtype.input_count,mtype.output_count,gate.inputs.len(),gate.outputs.len()));
-                            }
-                        },
-                        None => { errors.push(format!("Undefined module used: {}",gate.module_name)); },
+    for module in &modules {
+        for gate in &module.gates {
+            match module_types.iter().find(|m| m.name==gate.module_name).map(|m| &m.mtype) {
+                Some(mtype) => { // 使われているモジュールが定義されている場合
+                    // moduleのinput,outputの型を確認
+                    if gate.inputs.len()!=mtype.input_count||gate.outputs.len()!=mtype.output_count {
+                        errors.push(format!("Used module with unmatched type: {} expected {}->{} but got {}->{}",gate.module_name,mtype.input_count,mtype.output_count,gate.inputs.len(),gate.outputs.len()));
                     }
+                },
+                None => { errors.push(format!("Undefined module used: {}",gate.module_name)); break; },
+            }
+            // func_moduleのみの処理
+            if module.func {
+                // 使っているモジュールもfunc_moduleかどうか確認
+                match modules.iter().find(|m| m.name==gate.module_name).map(|m| &m.func) {
+                    Some(func) => {
+                        if !func {
+                            errors.push(format!("Function modules cannot call non-function modules: {} used in {}",gate.module_name,module.name));
+                        }
+                    },
+                    None => {
+                        // 前段でチェックされているのでエラーメッセージは出さない
+                    },
                 }
-            },
-            _ => {} // モジュールでなければ何もしない
+            }
         }
     }
+
     if errors.len()==0 { Ok(()) }
     else { Err(errors) }
 }
