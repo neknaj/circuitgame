@@ -16,7 +16,10 @@ pub fn document(product: IntermediateProducts) -> Result<String,String> {
         }
     }
     let table_body = modules.iter().map(|module| {
-        format!("| {} | {} -> {} | {} |",module.name,module.inputs.len(),module.outputs.len(),module.gates.len())
+        match product.expanded_modules.get(&module.name) {
+            Some(emod) => format!("| {} | {} -> {} | {} |",module.name,module.inputs.len(),module.outputs.len(),emod.gates.len()),
+            None => format!("| error |")
+        }
     }).collect::<Vec<_>>().join("\n");
     let table = format!("| name | type | size |\n| -- | -- | -- |\n{}",table_body);
     Ok(format!("{}",table))
