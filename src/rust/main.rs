@@ -25,7 +25,6 @@ struct Opt {
 #[tokio::main]
 async fn main() {
     use colored::*;
-    println!("< {} >","Neknaj Circuit Game".bold());
     // 引数を処理
     let opt = Opt::parse();
     let input_path = match opt.input {
@@ -37,7 +36,7 @@ async fn main() {
     };
     let server_launch = opt.server.unwrap_or(false);
     if !server_launch {
-        native::withoutserver::main(input_path,opt.output, opt.doc_output, opt.module);
+        native::withoutserver::main(input_path,opt.output, opt.doc_output, opt.module).await;
     }
     else {
         native::server::main(input_path, opt.output, opt.doc_output, opt.module).await;
