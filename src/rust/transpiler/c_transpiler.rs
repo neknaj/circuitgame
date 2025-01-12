@@ -11,7 +11,7 @@ pub fn transpile(module: Module,header: bool) -> Result<String,String> {
     // ヘッダーを作る
     let out_struct = format!("typedef struct {{\n    bool outputs[{}OutputsLen];\n}} {}Result;",module.name,module.name);
     let out_func_h = format!("{}Result {}({});",module.name,module.name,vec!["int";module.inputs as usize].join(","));
-    let out_header = format!("#ifndef TRANSPILE_HEADER\n#define TRANSPILE_HEADER\n\n{}\n\n{}\n\n{}\n\n{}\n\n#endif","#include <stdbool.h>",format!("#define {}OutputsLen {}",module.name,module.outputs.len()),out_struct,out_func_h);
+    let out_header = format!("#ifndef TRANSPILE_{}_HEADER\n#define TRANSPILE_{}_HEADER\n\n{}\n\n{}\n\n{}\n\n{}\n\n#endif",module.name,module.name,"#include <stdbool.h>",format!("#define {}OutputsLen {}",module.name,module.outputs.len()),out_struct,out_func_h);
     if header { return Ok(out_header); }
     // 本体の関数を作る
     let out_func_head = format!("{}Result {}({})",module.name,module.name,(0..module.inputs as usize).map(|i| format!("int b{}",i+module.gates.len())).collect::<Vec<String>>().join(", "));
