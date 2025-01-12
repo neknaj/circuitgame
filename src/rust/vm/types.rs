@@ -5,7 +5,8 @@ pub struct Module {
     pub name: String,
     pub inputs: u32,
     pub outputs: Vec<u32>,
-    pub gates: Vec<NORGate>,
+    pub gates_sequential: Vec<NORGate>,
+    pub gates_symmetry: Vec<NORGate>,
     pub cond: GatesCond,
     pub tick: u128,
 }

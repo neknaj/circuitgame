@@ -16,7 +16,8 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 name: "nor".to_string(),
                 inputs: 2,
                 outputs: vec![0],
-                gates: vec![(CompiledGateInput::Input(0),CompiledGateInput::Input(1))]
+                gates_sequential: vec![(CompiledGateInput::Input(0),CompiledGateInput::Input(1))],
+                gates_symmetry: Vec::new(),
             });
             continue;
         }
@@ -40,7 +41,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 None => {errors.push(format!("Undefined gate used: {}",gate.module_name));continue;}
             };
             gates_pointer.push(gate_count);
-            gate_count += expanding_gate.gates.len() as u32;
+            gate_count += expanding_gate.gates_sequential.len() as u32;
         }
         // gateのoutput名前とindexの対応表を作る
         let mut output_map = HashMap::new();
@@ -72,7 +73,7 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 Some(v) => v.clone(),
                 None => {errors.push(format!("Undefined gate used: {}",gate.module_name));continue;}
             };
-            for egate in expanding_gate.gates.clone() {
+            for egate in expanding_gate.gates_sequential.clone() {
                 let input0 = match egate.0 {
                     CompiledGateInput::NorGate(n) => CompiledGateInput::NorGate(n+gates_pointer[gate_index as usize]),
                     CompiledGateInput::Input(n) => match output_map.get(&gate.inputs[n as usize]) {
@@ -111,7 +112,8 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
             name: module_name.clone(),
             inputs: module.inputs.len() as u32,
             outputs: outputs,
-            gates: expanded,
+            gates_sequential: expanded,
+            gates_symmetry: Vec::new(),
         });
     }
 
@@ -138,15 +140,27 @@ pub fn serialize_to_vec(module: CompiledModule) -> Vec<u32> {
     result.push(module.outputs.len() as u32);
     result.extend(&module.outputs);
     // Serialize gates
-    result.push(module.gates.len() as u32);
-    for gate in &module.gates {
+    result.push(module.gates_sequential.len() as u32);
+    result.push(module.gates_symmetry.len() as u32);
+    let gates_len = (module.gates_sequential.len() + module.gates_symmetry.len()) as u32;
+    for gate in &module.gates_sequential {
         result.push(match gate.0 {
             CompiledGateInput::NorGate(n) => n,
-            CompiledGateInput::Input(n) => n + module.gates.len() as u32,
+            CompiledGateInput::Input(n) => n + gates_len,
         });
         result.push(match gate.1 {
             CompiledGateInput::NorGate(n) => n,
-            CompiledGateInput::Input(n) => n + module.gates.len() as u32,
+            CompiledGateInput::Input(n) => n + gates_len,
+        });
+    }
+    for gate in &module.gates_symmetry {
+        result.push(match gate.0 {
+            CompiledGateInput::NorGate(n) => n,
+            CompiledGateInput::Input(n) => n + gates_len,
+        });
+        result.push(match gate.1 {
+            CompiledGateInput::NorGate(n) => n,
+            CompiledGateInput::Input(n) => n + gates_len,
         });
     }
     result

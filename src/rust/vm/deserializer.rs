@@ -63,29 +63,44 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     if index >= data.len() {
         return Err("Data is too short to contain gates length".to_string());
     }
-    let gates_len = data[index] as usize;
+    let gates_len_sequential = data[index] as usize;
+    index += 1;
+    if index >= data.len() {
+        return Err("Data is too short to contain gates length".to_string());
+    }
+    let gates_len_symmetry = data[index] as usize;
     index += 1;
 
-    if index + gates_len * 2 > data.len() {
+    if index + gates_len_sequential * 2 > data.len() {
         return Err("Data is too short to contain gates".to_string());
     }
-    let mut gates = Vec::new();
-    for _ in 0..gates_len {
+    let mut gates_sequential = Vec::new();
+    for _ in 0..gates_len_sequential {
         let gate: NORGate = (data[index], data[index + 1]);
-        gates.push(gate);
+        gates_sequential.push(gate);
+        index += 2;
+    }
+    if index + gates_len_symmetry * 2 > data.len() {
+        return Err("Data is too short to contain gates".to_string());
+    }
+    let mut gates_symmetry = Vec::new();
+    for _ in 0..gates_len_symmetry {
+        let gate: NORGate = (data[index], data[index + 1]);
+        gates_symmetry.push(gate);
         index += 2;
     }
 
     // init cond
     let mut cond = Vec::new();
-    cond.resize(gates.len()+inputs as usize, false);
+    cond.resize(gates_sequential.len()+inputs as usize, false);
 
     Ok(Module {
         func,
         name,
         inputs,
         outputs,
-        gates,
+        gates_sequential: gates_sequential,
+        gates_symmetry: gates_symmetry,
         cond,
         tick: 0,
     })

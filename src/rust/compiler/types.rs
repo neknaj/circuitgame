@@ -90,7 +90,8 @@ pub struct CompiledModule {
     pub name: String,
     pub inputs: u32,
     pub outputs: Vec<u32>,
-    pub gates: Vec<CompiledGate>,
+    pub gates_sequential: Vec<CompiledGate>,
+    pub gates_symmetry: Vec<CompiledGate>,
 }
 
 // compileの返り値

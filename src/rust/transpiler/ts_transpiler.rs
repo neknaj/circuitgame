@@ -42,10 +42,10 @@ pub fn transpile(module: Module,header: bool) -> Result<String,String> {
         let out_func_head = format!(
             "export function {}({}): {}Result",
             module.name,
-            (0..module.inputs as usize).map(|i| format!("b{}: boolean",i+module.gates.len())).collect::<Vec<String>>().join(", "),
+            (0..module.inputs as usize).map(|i| format!("b{}: boolean",i+module.gates_sequential.len())).collect::<Vec<String>>().join(", "),
             module.name,
         );
-        let out_func_gates = module.gates.iter().enumerate().map(|(index,value)| format!("    const b{} = !( b{} || b{} );",index,value.0,value.1)).collect::<Vec<String>>().join("\n");
+        let out_func_gates = module.gates_sequential.iter().enumerate().map(|(index,value)| format!("    const b{} = !( b{} || b{} );",index,value.0,value.1)).collect::<Vec<String>>().join("\n");
         let out_func_return = format!(
             "    return {{ outputs: [ {} ] }};",
             module.outputs.iter().map(|value| format!("b{}",value)).collect::<Vec<String>>().join(", "),

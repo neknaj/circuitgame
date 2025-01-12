@@ -17,7 +17,7 @@ pub fn document(product: IntermediateProducts) -> Result<String,String> {
     }
     let table_body = modules.iter().map(|module| {
         match product.expanded_modules.get(&module.name) {
-            Some(emod) => format!("| {} | {} -> {} | {} |",module.name,module.inputs.len(),module.outputs.len(),emod.gates.len()),
+            Some(emod) => format!("| {} | {} -> {} | {} |",module.name,module.inputs.len(),module.outputs.len(),emod.gates_sequential.len()),
             None => format!("| error |")
         }
     }).collect::<Vec<_>>().join("\n");
