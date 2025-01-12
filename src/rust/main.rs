@@ -18,7 +18,7 @@ struct Opt {
     #[arg(short = 'm', long = "module", value_name = "Name of module to compile")]
     module: Option<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
-    server: Option<bool>,
+    server: Option<String>,
     #[arg(short = 'w', long = "watch", value_name = "File Watch")]
     watch: Option<bool>,
     #[arg(long = "vm", value_name = "Run VM")]
@@ -38,8 +38,11 @@ async fn main() {
             return;
         },
     };
-    let server = match opt.server {
-        Some(v)=>v,
+    let server = match &opt.server {
+        Some(v)=> match v {
+            v if v=="false" => false,
+            _ => true,
+        },
         None => false,
     };
     let watch = match opt.watch {
@@ -47,7 +50,7 @@ async fn main() {
         None => server,
     };
     if server|watch|opt.run_vm.unwrap_or(false) {
-        native::watch::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false),watch,server).await;
+        native::watch::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false),watch,server,opt.server).await;
     }
     else {
         let _ = native::common::process_input(&input_path, opt.module,opt.output,opt.doc_output );

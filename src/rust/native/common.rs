@@ -91,7 +91,7 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
                         if let Err(e) = write_binary_file(output.as_str(), binary.clone()) {
                             println!("{}:{} {}","[error]".red(),"output".cyan(),e);
                         } else {
-                            println!("{}:{} Output completed","[info]".green(),"output".cyan());
+                            println!("{}:{} Output completed: {}","[info]".green(),"output".cyan(),output);
                         }
                     },
                     "c"|"cheader" => {

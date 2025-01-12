@@ -19,17 +19,32 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>, run_vm: bool, watch: bool, server: bool) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>, run_vm: bool, watch: bool, server: bool, server_port: Option<String>) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
     let (vmset_tx, _vmset_rx) = broadcast::channel::<u32>(100); // ncg処理 (file change 通知)
 
-    if server {
-        // WebSocketサーバーを起動
-        let ws_tx_clone = ws_tx.clone();
-        let input_path_clone = input_path.clone();
-        tokio::spawn(start_websocket_server(ws_tx_clone,input_path_clone));
+    let mut server_msg = if server {
+            // WebSocketサーバーを起動
+            let ws_tx_clone = ws_tx.clone();
+            let input_path_clone = input_path.clone();
+            start_websocket_server(ws_tx_clone,input_path_clone,server_port).await
+        }
+        else {
+            Err("disabled".to_string())
+        };
+    // serverの起動に失敗したとき
+    match &server_msg {
+        Ok(_) => {},
+        Err(v) => {
+            use colored::*;
+            if !(watch|run_vm) {
+                let _ = super::common::process_input(&input_path, module,output_path,doc_output_path );
+                println!("{}:{} {}","[error]".red(),"webSock".cyan(),v);
+                return;
+            }
+        }
     }
 
     if watch {
@@ -55,7 +70,7 @@ pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path:
     let ws_tx_clone = ws_tx.clone();
     let fc_tx_clone = fc_tx.clone();
     let vmset_tx_clone = vmset_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path, run_vm,watch,server)});
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path,server_msg, run_vm,watch,server)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -143,21 +158,37 @@ async fn key_watch(ws_tx: broadcast::Sender<String>,vmset_tx: broadcast::Sender<
     }
 }
 
-async fn start_websocket_server(ws_tx: broadcast::Sender<String>,input_path: String) {
-    let listener = TcpListener::bind("127.0.0.1:8081").await.unwrap();
-    println!("WebSocket server running at ws://localhost:8081");
+async fn start_websocket_server(ws_tx: broadcast::Sender<String>,input_path: String, server_port: Option<String>) -> Result<String,String> {
+    let port = match server_port.unwrap_or("8080".to_string()) {
+        v if v=="true" => "8080".to_string(),
+        v => v,
+    };
+    let listener = match TcpListener::bind(format!("localhost:{}",port)).await {
+        Ok(v) => v,
+        Err(v) => { return Err(format!("{}: {}",v,port)); },
+    };
 
-    while let Ok((stream, _)) = listener.accept().await {
-        let ws_stream = accept_async(stream)
-            .await
-            .expect("Error during WebSocket handshake");
+    tokio::spawn(async move {
+        while let Ok((stream, _)) = listener.accept().await {
+            let ws_stream = accept_async(stream)
+                .await
+                .expect("Error during WebSocket handshake");
 
-        // println!("New WebSocket connection!");
+            // println!("New WebSocket connection!");
 
-        let ws_tx = ws_tx.clone();
-        let input_path_clone = input_path.clone();
-        tokio::spawn(handle_connection(ws_stream, ws_tx, input_path_clone));
-    }
+            let ws_tx = ws_tx.clone();
+            let input_path_clone = input_path.clone();
+            tokio::spawn(handle_connection(ws_stream, ws_tx, input_path_clone));
+        }
+    });
+    Ok(format!(
+        "Server running at {}",
+        format!(
+            "\x1b]8;;{}\x1b\\{}\x1b]8;;\x1b\\",
+            format!("https://neknaj.github.io/circuitgame/?socket=ws://localhost:{}",port),
+            format!("ws://localhost:{}",port),
+        )
+    ))
 }
 
 async fn handle_connection(
@@ -203,7 +234,7 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>, run_vm: bool, watch: bool, server: bool) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>, server_msg: Result<String,String>, run_vm: bool, watch: bool, server: bool) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
@@ -211,6 +242,16 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
         print!("\x1B[2J\x1B[1;1H");  // ANSIエスケープシーケンスでクリア
         use colored::*;
         println!("{}:{} {}","[info]".green(),"ncg".cyan(),format!("watch: {} server: {} vm: {}",match watch{true=>"on".cyan(),false=>"off".blue()},match server{true=>"on".cyan(),false=>"off".blue()},match run_vm{true=>"on".cyan(),false=>"off".blue()}));
+        if server {
+            match &server_msg {
+                Ok(msg) => {
+                    println!("{}:{} {}","[info]".green(),"webSock".cyan(),msg);
+                }
+                Err(msg) => {
+                    println!("{}:{} {}","[error]".red(),"webSock".cyan(),msg);
+                }
+            }
+        }
         println!("");
 
         let binary = super::common::process_input(&input_path,module.clone(),output_path.clone(),doc_output_path.clone());
