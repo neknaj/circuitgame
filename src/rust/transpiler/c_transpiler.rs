@@ -4,6 +4,9 @@ pub fn transpile(module: Module,header: bool) -> Result<String,String> {
     if !module.func {
         return Err(format!("C transpiler does not support nom-func module: {}",module.name));
     }
+    if module.gates_symmetry.len()>0 {
+        return Err(format!("C transpiler does not support symmetry module: {}",module.name));
+    }
     // ヘッダーを作る
     let out_struct = format!(
         "typedef struct {{\n    bool outputs[{}OutputsLen];\n}} {}Result;",
