@@ -8,7 +8,7 @@ use super::super::compiler;
 use super::document;
 use colored::*;
 
-pub async fn main(input_path: String, output_path: Option<String>, doc_output_path: Option<String>, module: Option<String>) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>) {
     // inputを読み込み
     println!("{}:{} input file: {}","[info]".green(),"input".cyan(),input_path.clone());
     let input = match std::fs::read_to_string(input_path) {
@@ -56,7 +56,7 @@ pub async fn main(input_path: String, output_path: Option<String>, doc_output_pa
         println!("{}:{} {}","[error]".red(),"test".cyan(),i);
     }
     // コンパイル結果をoutput
-    match output_path {
+    match output_path.get(0) {
         Some(v)=> {
             if let Err(e) = write_binary_file(v.as_str(), binary) {
                 println!("{}:{} {}","[error]".red(),"output".cyan(),e);

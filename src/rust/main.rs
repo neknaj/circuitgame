@@ -12,8 +12,8 @@ struct Opt {
     #[arg(short = 'i', long = "input", value_name = "Input File Path")]
     input: Option<String>,
     #[arg(short = 'o', long = "output", value_name = "Output File Path")]
-    output: Option<String>,
-    #[arg(short = 'd', long = "doc output", value_name = "Document output File Path")]
+    output: Vec<String>,
+    #[arg(short = 'd', long = "docOut", value_name = "Document output File Path")]
     doc_output: Option<String>,
     #[arg(short = 'm', long = "module", value_name = "Name of module to compile")]
     module: Option<String>,

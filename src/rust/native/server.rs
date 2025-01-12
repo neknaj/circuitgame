@@ -3,6 +3,7 @@ use super::super::vm;
 use super::super::compiler;
 use colored::*;
 use crate::native::document::document;
+use crate::vm::deserializer::deserialize_from_vec;
 
 use crossterm::{
     cursor,
@@ -25,7 +26,7 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Option<String>, doc_output_path: Option<String>, module: Option<String>) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
@@ -205,7 +206,7 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Option<String>, doc_output_path: Option<String>) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
@@ -227,12 +228,13 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
 }
 
 // 入力処理を別関数として分離
-fn process_input(input_path: &str,module: Option<String>, output_path: Option<String>, doc_output_path: Option<String>) -> Vec<u32> {
+fn process_input(input_path: &str,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>) -> Vec<u32> {
     // 画面クリア
     print!("\x1B[2J\x1B[1;1H");  // ANSIエスケープシーケンスでクリア
 
+    println!("{}:{} input  file: {}","[info]".green(),"input ".cyan(),input_path);
+    println!("{}:{} output file: {:?}","[info]".green(),"output".cyan(),output_path);
     // inputを読み込み
-    println!("{}:{} input file: {}","[info]".green(),"input".cyan(),input_path);
     let input = match std::fs::read_to_string(input_path) {
         Ok(v) => v,
         Err(e) => {
@@ -285,19 +287,51 @@ fn process_input(input_path: &str,module: Option<String>, output_path: Option<St
         println!("{}:{} {}","[error]".red(),"test".cyan(),i);
     }
 
-    // コンパイル結果をoutput
-    match output_path {
-        Some(v)=> {
-            if let Err(e) = write_binary_file(v.as_str(), binary.clone()) {
-                println!("{}:{} {}","[error]".red(),"output".cyan(),e);
-            } else {
-                println!("{}:{} Output completed","[info]".green(),"output".cyan());
-            }
-        },
-        None => {
-            println!("{}:{} No output path specified in command line arguments","[info]".green(),"output".cyan());
-            println!("{:?}",binary);
-        }
+    for output in output_path {
+        // outputのtypeを決定する
+        let out_type = match output.split(":").nth(1) {
+            // 明示されている場合
+            Some(t) => t,
+            // 拡張子から推定
+            None => match std::path::Path::new(&output).extension().and_then(|e| e.to_str()) {
+                Some("bin") => "ncgb",
+                Some("ncgb") => "ncgb",
+                Some("c") => "c",
+                Some("h") => "cheader",
+                // output_typeの推定に失敗
+                Some(_) | None => {
+                    println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Could not infer output type for {}",output));
+                    continue;
+                },
+            },
+        };
+        // typeに基づいてoutput
+        match out_type {
+            "ncgb" => {
+                if let Err(e) = write_binary_file(output.as_str(), binary.clone()) {
+                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                } else {
+                    println!("{}:{} Output completed","[info]".green(),"output".cyan());
+                }
+            },
+            "c"|"cheader" => {
+                match crate::transpiler::c_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="cheader") {
+                    Ok(data) => {
+                        if let Err(e) = write_text_file(output.as_str(), &data) {
+                            println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                        } else {
+                            println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                        }
+                    },
+                    Err(err) => {
+                        println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                    }
+                }
+            },
+            _ => {
+                println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Unsupported output type was specified: {} for {}",out_type,output));
+            },
+        };
     }
     match document(result.clone()) {
         Ok(doc_str)=>{
