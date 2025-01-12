@@ -40,21 +40,18 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
         return Vec::new();
     }
 
-    let module_name = match module {
-        Some(v) => v,
-        None => match result.module_dependency_sorted.get(0) {
-            Some(v) => v.clone(),
-            None => {return Vec::new();}
-        }
-    };
-    println!("{}:{} Compiling module: {}","[info]".green(),"compile".cyan(),module_name);
-
-    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
-        Ok(v) => v,
-        Err(v) => {
-            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
-            return Vec::new();
-        }
+    let binary = match module.clone() {
+        Some(module_name) => {
+            println!("{}:{} Compiling module: {}","[info]".green(),"compile".cyan(),module_name);
+            match compiler::serialize(result.clone(), module_name.as_str()) {
+                Ok(v) => v,
+                Err(v) => {
+                    println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                    return Vec::new()
+                }
+            }
+        },
+        None => { Vec::new() },
     };
 
     let test_result = test::test(result.clone());
@@ -84,32 +81,39 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
             },
         };
         // typeに基づいてoutput
-        match out_type {
-            "ncgb" => {
-                if let Err(e) = write_binary_file(output.as_str(), binary.clone()) {
-                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
-                } else {
-                    println!("{}:{} Output completed","[info]".green(),"output".cyan());
-                }
-            },
-            "c"|"cheader" => {
-                match crate::transpiler::c_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="cheader") {
-                    Ok(data) => {
-                        if let Err(e) = write_text_file(output.as_str(), &data) {
+        match module.clone() {
+            Some(module_name) => {
+                match out_type {
+                    "ncgb" => {
+                        if let Err(e) = write_binary_file(output.as_str(), binary.clone()) {
                             println!("{}:{} {}","[error]".red(),"output".cyan(),e);
                         } else {
-                            println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                            println!("{}:{} Output completed","[info]".green(),"output".cyan());
                         }
                     },
-                    Err(err) => {
-                        println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
-                    }
-                }
+                    "c"|"cheader" => {
+                        match crate::transpiler::c_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="cheader") {
+                            Ok(data) => {
+                                if let Err(e) = write_text_file(output.as_str(), &data) {
+                                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                                } else {
+                                    println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                                }
+                            },
+                            Err(err) => {
+                                println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                            }
+                        }
+                    },
+                    _ => {
+                        println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Unsupported output type was specified: {} for {}",out_type,output));
+                    },
+                };
             },
-            _ => {
-                println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Unsupported output type was specified: {} for {}",out_type,output));
+            None => {
+                println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Output module was not specified for {}",output));
             },
-        };
+        }
     }
     match document(result.clone()) {
         Ok(doc_str)=>{
