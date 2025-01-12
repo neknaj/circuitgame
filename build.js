@@ -45,9 +45,9 @@ async function buildRust() {
         return true;
     } catch (error) {
         // エラーオブジェクトから終了コードを取得
-        process.stderr.write(error.message);
-        console.error('Exit Code:', error.code); // 終了コードを表示
-        return false;
+        process.stderr.write(error.message+"\n");
+        process.stderr.write(error.statusCode+"\n");
+        throw error.statusCode;
     }
 }
 
@@ -89,7 +89,7 @@ async function getFile(savePath,url) {
 
 async function main() {
     makedir();
-    if (! await buildRust()) return;
+    await buildRust();
     await copyFiles([
         [
             "./pkg/circuitgame_lib.js",
