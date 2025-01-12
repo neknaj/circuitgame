@@ -92,7 +92,7 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
 
     // init cond
     let mut cond = Vec::new();
-    cond.resize(gates_sequential.len()+inputs as usize, false);
+    cond.resize(gates_sequential.len()+gates_symmetry.len()+inputs as usize, false);
 
     Ok(Module {
         func,
