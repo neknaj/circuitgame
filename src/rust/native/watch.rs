@@ -19,16 +19,30 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>, run_vm: bool) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>, run_vm: bool, watch: bool, server: bool) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
     let (vmset_tx, _vmset_rx) = broadcast::channel::<u32>(100); // ncg処理 (file change 通知)
 
-    // WebSocketサーバーを起動
-    let ws_tx_clone = ws_tx.clone();
-    let input_path_clone = input_path.clone();
-    tokio::spawn(start_websocket_server(ws_tx_clone,input_path_clone));
+    if server {
+        // WebSocketサーバーを起動
+        let ws_tx_clone = ws_tx.clone();
+        let input_path_clone = input_path.clone();
+        tokio::spawn(start_websocket_server(ws_tx_clone,input_path_clone));
+    }
+
+    if watch {
+        // ファイル監視タスクを起動
+        let fc_tx_clone = fc_tx.clone();
+        let ws_tx_clone = ws_tx.clone();
+        let watch_path = input_path.clone();
+        tokio::spawn(async move {
+            if let Err(e) = watch_file(watch_path,ws_tx_clone, fc_tx_clone).await {
+                eprintln!("Error watching file: {}", e);
+            }
+        });
+    }
 
     // キー入力監視用のタスク
     let ws_tx_clone = ws_tx.clone();
@@ -37,21 +51,11 @@ pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path:
         key_watch(ws_tx_clone, vmset_tx_clone).await;
     });
 
-    // ファイル監視タスクを起動
-    let fc_tx_clone = fc_tx.clone();
-    let ws_tx_clone = ws_tx.clone();
-    let watch_path = input_path.clone();
-    tokio::spawn(async move {
-        if let Err(e) = watch_file(watch_path,ws_tx_clone, fc_tx_clone).await {
-            eprintln!("Error watching file: {}", e);
-        }
-    });
-
     // NCGの処理系を起動
     let ws_tx_clone = ws_tx.clone();
     let fc_tx_clone = fc_tx.clone();
     let vmset_tx_clone = vmset_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path, run_vm)});
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path, run_vm,watch,server)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -199,12 +203,15 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>, run_vm: bool) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>, run_vm: bool, watch: bool, server: bool) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
         // 画面クリア
         print!("\x1B[2J\x1B[1;1H");  // ANSIエスケープシーケンスでクリア
+        use colored::*;
+        println!("{}:{} {}","[info]".green(),"ncg".cyan(),format!("watch: {} server: {} vm: {}",match watch{true=>"on".cyan(),false=>"off".blue()},match server{true=>"on".cyan(),false=>"off".blue()},match run_vm{true=>"on".cyan(),false=>"off".blue()}));
+        println!("");
 
         let binary = super::common::process_input(&input_path,module.clone(),output_path.clone(),doc_output_path.clone());
 
@@ -219,7 +226,6 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
             _ = async {
                 if run_vm {
                     if (!match module.clone() {Some(_)=>true,_=>false}) {
-                        use colored::*;
                         println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Output module was not specified for VM"));
                         sleep(Duration::from_secs(100)).await;
                         return;

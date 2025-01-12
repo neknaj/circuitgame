@@ -19,6 +19,8 @@ struct Opt {
     module: Option<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
     server: Option<bool>,
+    #[arg(short = 'w', long = "watch", value_name = "File Watch")]
+    watch: Option<bool>,
     #[arg(long = "vm", value_name = "Run VM")]
     run_vm: Option<bool>,
 }
@@ -36,12 +38,19 @@ async fn main() {
             return;
         },
     };
-    let server_launch = opt.server.unwrap_or(false);
-    if !server_launch {
-        let _ = native::common::process_input(&input_path, opt.module,opt.output,opt.doc_output );
+    let server = match opt.server {
+        Some(v)=>v,
+        None => false,
+    };
+    let watch = match opt.watch {
+        Some(v) => v,
+        None => server,
+    };
+    if server|watch|opt.run_vm.unwrap_or(false) {
+        native::watch::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false),watch,server).await;
     }
     else {
-        native::watch::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false)).await;
+        let _ = native::common::process_input(&input_path, opt.module,opt.output,opt.doc_output );
     }
     return;
 }
