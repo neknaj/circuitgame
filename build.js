@@ -22,8 +22,8 @@ function buildTS() {
         tsconfig: './tsconfig.json', // tsconfig.jsonのパス
         outfile: './dist/index.js',    // 出力先
         bundle: true,                   // 依存関係をバンドル
-        // minify: true,                   // 圧縮
-        minify: false,                   // 圧縮
+        minify: true,                   // 圧縮
+        // minify: false,                   // 圧縮
         sourcemap: false,                // ソースマップ生成
         target: ['esnext'],             // トランスパイルのターゲット
         loader: { '.ts': 'ts' },        // TypeScriptを処理
