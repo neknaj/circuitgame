@@ -75,6 +75,7 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
                 name if name.ends_with(".h")    => "cheader",
                 name if name.ends_with(".d.ts") => "dts",
                 name if name.ends_with(".ts")   => "ts",
+                name if name.ends_with(".js")   => "js",
                 // output_typeの推定に失敗
                 _ => {
                     println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Could not infer output type for {}",output));
@@ -109,6 +110,20 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
                     },
                     "ts"|"dts" => {
                         match crate::transpiler::ts_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="dts") {
+                            Ok(data) => {
+                                if let Err(e) = write_text_file(output.as_str(), &data) {
+                                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                                } else {
+                                    println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                                }
+                            },
+                            Err(err) => {
+                                println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                            }
+                        }
+                    },
+                    "js" => {
+                        match crate::transpiler::js_transpiler::transpile(deserialize_from_vec(&binary).unwrap()) {
                             Ok(data) => {
                                 if let Err(e) = write_text_file(output.as_str(), &data) {
                                     println!("{}:{} {}","[error]".red(),"output".cyan(),e);
