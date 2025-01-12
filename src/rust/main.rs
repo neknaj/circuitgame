@@ -38,10 +38,10 @@ async fn main() {
     };
     let server_launch = opt.server.unwrap_or(false);
     if !server_launch {
-        native::withoutserver::main(input_path,opt.output, opt.doc_output, opt.module).await;
+        native::withoutwatch::main(input_path,opt.output, opt.doc_output, opt.module).await;
     }
     else {
-        native::server::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false)).await;
+        native::watch::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false)).await;
     }
     return;
 }
