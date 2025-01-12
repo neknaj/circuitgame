@@ -19,6 +19,8 @@ struct Opt {
     module: Option<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
     server: Option<bool>,
+    #[arg(long = "vm", value_name = "Run VM")]
+    run_vm: Option<bool>,
 }
 
 #[cfg(not(feature = "web"))]
@@ -39,7 +41,7 @@ async fn main() {
         native::withoutserver::main(input_path,opt.output, opt.doc_output, opt.module).await;
     }
     else {
-        native::server::main(input_path, opt.output, opt.doc_output, opt.module).await;
+        native::server::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false)).await;
     }
     return;
 }

@@ -19,7 +19,7 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>, run_vm: bool) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
@@ -51,7 +51,7 @@ pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path:
     let ws_tx_clone = ws_tx.clone();
     let fc_tx_clone = fc_tx.clone();
     let vmset_tx_clone = vmset_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path)});
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path, run_vm)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -199,7 +199,7 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>, run_vm: bool) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
@@ -217,13 +217,24 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
                 // ファイル変更を検知した場合の処理を追加
             }
             _ = async {
-                tokio::select! {
-                    vm_res = super::common::runVM(binary, vmset_tx_clone,ws_tx_clone) => {
-                        match vm_res {
-                            Ok(_) => {},
-                            Err(_) => { sleep(Duration::from_secs(100)).await; },
+                if run_vm {
+                    if (!match module.clone() {Some(_)=>true,_=>false}) {
+                        use colored::*;
+                        println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Output module was not specified for VM"));
+                        sleep(Duration::from_secs(100)).await;
+                        return;
+                    }
+                    tokio::select! {
+                        vm_res = super::common::runVM(binary, vmset_tx_clone,ws_tx_clone) => {
+                            match vm_res {
+                                Ok(_) => {},
+                                Err(_) => { sleep(Duration::from_secs(100)).await; },
+                            }
                         }
                     }
+                }
+                else {
+                    sleep(Duration::from_secs(100)).await;
                 }
             } => {}
         }
