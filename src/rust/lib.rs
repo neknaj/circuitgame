@@ -6,7 +6,6 @@ mod vm;
 mod resourcemanager;
 mod transpiler;
 
-use rand::seq::index;
 use wasm_bindgen::prelude::*;
 use std::str;
 
@@ -124,7 +123,7 @@ pub fn export_VMgetGates(resource_id: u32) -> Vec<u32> {
     }
 }
 #[wasm_bindgen(js_name=VMgetTick)]
-pub fn export_VMgetTick(resource_id: u32) -> u32 {
+pub fn export_VMgetTick(resource_id: u32) -> u128 {
     let mut vmres = match VM_resource.lock() {
         Ok(v)=>v,
         Err(_)=> return 0
@@ -136,8 +135,21 @@ pub fn export_VMgetTick(resource_id: u32) -> u32 {
         None=> return 0
     }
 }
+#[wasm_bindgen(js_name=VMgetTickAsStr)]
+pub fn export_VMgetTick_as_str(resource_id: u32) -> String {
+    let mut vmres = match VM_resource.lock() {
+        Ok(v)=>v,
+        Err(_)=> return format!("Mutex error")
+    };
+    match vmres.get_resource(resource_id) {
+        Some(module)=> {
+            module.get_tick().to_string()
+        },
+        None=> return  format!("Resource not found: {}",resource_id)
+    }
+}
 #[wasm_bindgen(js_name=VMnext)]
-pub fn export_VMnext(resource_id: u32,n: u32) -> Result<u32,String> {
+pub fn export_VMnext(resource_id: u32,n: u32) -> Result<u128,String> {
     let mut vmres = match VM_resource.lock() {
         Ok(v)=>v,
         Err(_)=> return Err(format!("Mutex error"))
@@ -145,6 +157,22 @@ pub fn export_VMnext(resource_id: u32,n: u32) -> Result<u32,String> {
     match vmres.get_resource(resource_id) {
         Some(module)=> {
             module.next(n)
+        },
+        None=> return  Err(format!("Resource not found: {}",resource_id))
+    }
+}
+#[wasm_bindgen(js_name=VMnextAsStr)]
+pub fn export_VMnext_as_str(resource_id: u32,n: u32) -> Result<String,String> {
+    let mut vmres = match VM_resource.lock() {
+        Ok(v)=>v,
+        Err(_)=> return Err(format!("Mutex error"))
+    };
+    match vmres.get_resource(resource_id) {
+        Some(module)=> {
+            match module.next(n) {
+                Ok(v)=> Ok(v.to_string()),
+                Err(v)=> Err(v),
+            }
         },
         None=> return  Err(format!("Resource not found: {}",resource_id))
     }

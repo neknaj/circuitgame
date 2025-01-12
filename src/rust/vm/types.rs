@@ -7,7 +7,7 @@ pub struct Module {
     pub outputs: Vec<u32>,
     pub gates: Vec<NORGate>,
     pub cond: GatesCond,
-    pub tick: u32,
+    pub tick: u128,
 }
 
 pub type GatesCond = Vec<bool>;

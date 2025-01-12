@@ -66,11 +66,11 @@ impl Module {
         self.cond.clone()
     }
     /// 現在のtickを取得する
-    pub fn get_tick(&self) -> u32 {
+    pub fn get_tick(&self) -> u128 {
         self.tick
     }
     /// gatesをn周更新する
-    pub fn next(&mut self,n: u32) -> Result<u32, String> {
+    pub fn next(&mut self,n: u32) -> Result<u128, String> {
         for _ in 0..n {
             let mut gate_index = 0;
             for gate in &self.gates {
