@@ -1,7 +1,3 @@
-use tokio_tungstenite::tungstenite::http::header;
-use warp::filters::method::head;
-
-use crate::vm::deserializer::deserialize_from_vec;
 use crate::vm::types::*;
 
 pub fn transpile(module: Module,header: bool) -> Result<String,String> {
