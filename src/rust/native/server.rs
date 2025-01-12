@@ -216,15 +216,16 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
                 // println!("done {}", message);
                 // ファイル変更を検知した場合の処理を追加
             }
-            vm_res = super::common::runVM(binary, vmset_tx_clone,ws_tx_clone) => {
-                match vm_res {
-                    Ok(d) => {
-                        sleep(Duration::from_secs(2)).await;
-                    },
-                    Err(d) => {},
+            _ = async {
+                tokio::select! {
+                    vm_res = super::common::runVM(binary, vmset_tx_clone,ws_tx_clone) => {
+                        match vm_res {
+                            Ok(_) => {},
+                            Err(_) => { sleep(Duration::from_secs(100)).await; },
+                        }
+                    }
                 }
-                // println!("VM execution completed");
-            }
+            } => {}
         }
     }
 }
