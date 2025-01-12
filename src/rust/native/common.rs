@@ -68,13 +68,15 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
             // 明示されている場合
             Some(t) => t,
             // 拡張子から推定
-            None => match std::path::Path::new(&output).extension().and_then(|e| e.to_str()) {
-                Some("bin") => "ncgb",
-                Some("ncgb") => "ncgb",
-                Some("c") => "c",
-                Some("h") => "cheader",
+            None => match &output {
+                name if name.ends_with(".bin")  => "ncgb",
+                name if name.ends_with(".ncgb") => "ncgb",
+                name if name.ends_with(".c")    => "c",
+                name if name.ends_with(".h")    => "cheader",
+                name if name.ends_with(".d.ts") => "dts",
+                name if name.ends_with(".ts")   => "ts",
                 // output_typeの推定に失敗
-                Some(_) | None => {
+                _ => {
                     println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Could not infer output type for {}",output));
                     continue;
                 },
@@ -93,6 +95,20 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
                     },
                     "c"|"cheader" => {
                         match crate::transpiler::c_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="cheader") {
+                            Ok(data) => {
+                                if let Err(e) = write_text_file(output.as_str(), &data) {
+                                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                                } else {
+                                    println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                                }
+                            },
+                            Err(err) => {
+                                println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                            }
+                        }
+                    },
+                    "ts"|"dts" => {
+                        match crate::transpiler::ts_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="dts") {
                             Ok(data) => {
                                 if let Err(e) = write_text_file(output.as_str(), &data) {
                                     println!("{}:{} {}","[error]".red(),"output".cyan(),e);
