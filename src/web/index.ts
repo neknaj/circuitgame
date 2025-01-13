@@ -29,6 +29,14 @@ async function fetchTextFile(url: string): Promise<string> {
         throw error;
     }
 }
+function getFormattedDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // 月は0から始まるので+1
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}_${hours}-${minutes}`;
+}
 
 let socket = null;
 let editor;
@@ -305,7 +313,18 @@ async function run() {
             graph2Area: ()=>{return E("div",{id:"graph2"},[])},
             tsTranspiled: ()=>{return E("div",{id:"transpile_area"},[
                 E("div",{},[
-                    E("input",{type:"button",value:"compile"},[]).Listen("click",update),
+                    E("input",{type:"button",value:"copy"},[]).Listen("click",()=>{
+                        const text = output.getValue();
+                        navigator.clipboard.writeText(text).catch(err => {console.error('コピーに失敗しました: ' + err);});
+                    }),
+                    E("input",{type:"button",value:"download"},[]).Listen("click",()=>{
+                        const text = output.getValue();
+                        const blob = new Blob([text], { type: 'text/plain' });
+                        const link = document.createElement('a');
+                        link.href = URL.createObjectURL(blob);
+                        link.download = `ncg-${getFormattedDate(new Date())}.ts`;
+                        link.click();
+                    }),
                 ]),
                 E("div",{id:"tsTranspileResult"},[]),
             ])},

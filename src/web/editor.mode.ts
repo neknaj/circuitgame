@@ -70,10 +70,6 @@ export function darkTheme (require, exports, module, dom) {
     exports.cssClass = "ace-ncg-dark";  // CSSクラスの設定
 
     exports.cssText = `
-        .ace-ncg-dark {
-            background-color:rgb(0, 0, 0);
-            color: #f8f8f2;
-        }
 
         .ace-ncg-dark .ace_keyword.ace_control {
             color:rgb(255, 147, 187);
