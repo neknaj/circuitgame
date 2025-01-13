@@ -49,7 +49,7 @@ pub fn process_input(input_path: &str,output_modules_pattern: String, output_pat
     }
 
     let mut output_modules = Vec::new();
-    let regex_pattern = regex::Regex::new(&format!("^{}$",output_modules_pattern)).unwrap();
+    let regex_pattern = regex::Regex::new(&format!("^({})$",output_modules_pattern)).unwrap();
     for test_str in result.defined_func_module_list.clone() {
         if regex_pattern.is_match(&test_str) {
             output_modules.push(test_str.clone());
