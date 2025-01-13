@@ -35,7 +35,6 @@ impl<T> ResourceManager<T> {
         id
     }
 
-
     pub fn get_resource(&mut self, id: u32) -> Option<&mut T> {
         self.id_map.get(&id).and_then(|&index| self.resources.get_mut(index))
     }

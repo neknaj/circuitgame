@@ -1,13 +1,37 @@
 #![cfg(feature = "web")]
 
 mod compiler;
+mod transpiler;
 mod test;
 mod vm;
 mod resourcemanager;
-mod transpiler;
 
 use wasm_bindgen::prelude::*;
-use std::str;
+use std::{format, str};
+
+
+// resource manager
+use std::sync::Mutex;
+use crate::resourcemanager::*;
+use crate::vm::types::Module;
+
+lazy_static::lazy_static! {
+    static ref VM_resource: Mutex<ResourceManager<Module>> = Mutex::new( ResourceManager::new() );
+}
+
+#[wasm_bindgen(js_name=Module)]
+pub fn export_Module(data: Vec<u32>) -> Result<u32,String> {
+    let mut vmres = match VM_resource.lock() {
+        Ok(v)=>v,
+        Err(_)=> return Err(format!("Mutex error"))
+    };
+    match Module::new(data) {
+        Ok(v)=>{
+            Ok( vmres.add_resource(v) )
+        }
+        Err(v) => Err(v)
+    }
+}
 
 // Compile, Test
 
@@ -41,30 +65,35 @@ pub fn export_compile(input: &str,module: &str) -> Vec<u32> {
     }
 }
 
+
+
+
+#[wasm_bindgen(js_name=TranspileTS)]
+pub fn export_ts_transpile(modules_res_id: Vec<u32>) -> String {
+    let mut modules = Vec::new();
+    for res_id in modules_res_id {
+        let mut vmres = match VM_resource.lock() {
+            Ok(v)=>v,
+            Err(_)=> {continue;}
+        };
+        match vmres.get_resource(res_id) {
+            Some(module) => {
+                modules.push(module.clone());
+            },
+            None => {},
+        }
+    }
+    match transpiler::ts_transpiler::transpile(modules,false) {
+        Ok(v) => v,
+        Err(v) => format!("// Error: {}",v)
+    }
+}
+
+
+
 // VM
 
 
-use std::sync::Mutex;
-use crate::resourcemanager::*;
-use crate::vm::types::Module;
-
-lazy_static::lazy_static! {
-    static ref VM_resource: Mutex<ResourceManager<Module>> = Mutex::new( ResourceManager::new() );
-}
-
-#[wasm_bindgen(js_name=VMinit)]
-pub fn export_VMinit(data: Vec<u32>) -> Result<u32,String> {
-    let mut vmres = match VM_resource.lock() {
-        Ok(v)=>v,
-        Err(_)=> return Err(format!("Mutex error"))
-    };
-    match Module::new(data) {
-        Ok(v)=>{
-            Ok( vmres.add_resource(v) )
-        }
-        Err(v) => Err(v)
-    }
-}
 
 #[wasm_bindgen(js_name=VMreset)]
 pub fn export_VMreset(resource_id: u32) -> Result<(),String> {

@@ -1,4 +1,4 @@
-import init, { CompilerIntermediateProducts as CompilerIntermediateProducts_raw, Test as Test_raw, Compile, VMinit, VMreset, VMset, VMgetOutput, VMgetGates, VMgetTick, VMnext } from './circuitgame_lib.js';
+import init, { CompilerIntermediateProducts as CompilerIntermediateProducts_raw, Test as Test_raw, Compile, Module, VMreset, VMset, VMgetOutput, VMgetGates, VMgetTick, VMnext } from './circuitgame_lib.js';
 import { IntermediateProducts, TestProducts } from './types.js';
 import { isIntermediateProducts, isTestProducts } from './typeGuards.js';
 
@@ -21,7 +21,7 @@ function Test(input: string): TestProducts {
 }
 
 const VM = {
-    init: VMinit,
+    init: Module,
     reset: VMreset,
     set: VMset,
     getOutput: VMgetOutput,
@@ -30,6 +30,6 @@ const VM = {
     next: VMnext,
 }
 
-export { CompilerIntermediateProducts, Test as NCG_Test, Compile, VM};
+export { CompilerIntermediateProducts, Test as NCG_Test, Compile, VM, Module};
 export { IntermediateProducts, TestProducts };
 export default init;
