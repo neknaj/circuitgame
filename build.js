@@ -89,7 +89,7 @@ async function getFile(savePath,url) {
 
 async function main() {
     makedir();
-    // await buildRust();
+    await buildRust();
     await copyFiles([
         [
             "./pkg/circuitgame_lib.js",
