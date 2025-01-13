@@ -22,7 +22,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     if (binary.length==0) { console.warn("compiling error") ;return; }
     vm_id = VM.init(binary);
 
-    const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],gates:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
+    const modulesAST = module_name!="nor"?(product.ast.components.filter(x=>x.type=="Module"&&x.name==module_name)[0] as Module):{name:"nor",inputs:["x","y"],outputs:["a"],_sequential:[{inputs:["x","y"],outputs:["a"],module_name:"nor"}]};
     elm.innerHTML = "";
     console.log("module",module_name,selected);
     // module選択のドロップダウンメニューを追加
@@ -70,7 +70,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     elm.Add(E("h3",{},[T("tick")]));
     elm.Add(E("span",{id:"tick"},[]));
     elm.Add(E("h3",{},[T("number of gate")]));
-    elm.Add(E("span",{},[T(product.expanded_modules[module_name].gates.length)]));
+    elm.Add(E("span",{},[T(product.expanded_modules[module_name].gates_sequential.length)]));
     {
         const myEvent = new CustomEvent("moduleChanged", {
             detail: { module_name, product: product },
@@ -170,7 +170,7 @@ function changeGraphColors() {
     // ワイヤーの色
     {
         const gate = Array.from(VM.getGates(vm_id)).map(v=>v==1);
-        const wires = compiledModule.gates.flat(1).concat(compiledModule.outputs.map(x=>({NorGate:x} as CompiledGateInput)));
+        const wires = compiledModule.gates_sequential.flat(1).concat(compiledModule.outputs.map(x=>({NorGate:x} as CompiledGateInput)));
         // console.log(wires)
         // console.log(document.querySelectorAll("#graph .edgePaths path"))
         document.querySelectorAll("#graph1 .edgePaths path").forEach((node,i)=>{

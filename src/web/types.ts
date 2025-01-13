@@ -57,9 +57,12 @@ type CompiledGate = [CompiledGateInput, CompiledGateInput];
 
 // CompiledModule構造体の定義
 export interface CompiledModule {
+    func: boolean;
+    name: string;
     inputs: number;
     outputs: number[];
-    gates: CompiledGate[];
+    gates_sequential: CompiledGate[];
+    gates_symmetry: CompiledGate[];
 }
 
 export interface IntermediateProducts {

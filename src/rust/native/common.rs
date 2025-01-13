@@ -7,7 +7,7 @@ use super::super::vm;
 use super::super::compiler;
 
 // 入力処理を別関数として分離
-pub fn process_input(input_path: &str,output_modules: Vec<String>, output_path: Vec<String>, doc_output_path: Option<String>) -> Vec<Vec<u32>> {
+pub fn process_input(input_path: &str,output_modules_pattern: String, output_path: Vec<String>, doc_output_path: Option<String>) -> Vec<Vec<u32>> {
     println!("< {} >\n","Neknaj Circuit Game".bold());
 
     println!("{}:{} input  file: {}","[info]".green(),"input ".cyan(),input_path);
@@ -47,6 +47,20 @@ pub fn process_input(input_path: &str,output_modules: Vec<String>, output_path: 
     for i in &test_result.errors {
         println!("{}:{} {}","[error]".red(),"test".cyan(),i);
     }
+
+    let mut output_modules = Vec::new();
+    let regex_pattern = regex::Regex::new(&format!("^{}$",output_modules_pattern)).unwrap();
+    for test_str in result.defined_func_module_list.clone() {
+        if regex_pattern.is_match(&test_str) {
+            output_modules.push(test_str.clone());
+        }
+    }
+    for test_str in result.defined_non_func_module_list.clone() {
+        if regex_pattern.is_match(&test_str) {
+            output_modules.push(test_str.clone());
+        }
+    }
+    println!("{}:{} {}","[info]".green(),"modules".cyan(),format!("Module exports: {}",output_modules.join(", ")));
 
     for output in output_path {
         // outputのtypeを決定する
@@ -217,8 +231,6 @@ pub fn process_input(input_path: &str,output_modules: Vec<String>, output_path: 
     }
     binaries
 }
-
-
 
 fn write_binary_file(filename: &str, data: Vec<u32>) -> std::io::Result<()> {use std::fs::File;
     use byteorder::{LittleEndian, WriteBytesExt};

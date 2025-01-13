@@ -3,6 +3,8 @@ import { elm as E, textelm as T } from './cdom.js';
 import VMinit, { tick, updateLogiAnaGraph } from './vm.js';
 
 import ace from "ace-builds/src-noconflict/ace";
+import 'ace-builds/src-noconflict/mode-typescript';
+import 'ace-builds/src-noconflict/theme-monokai';
 import { CustomMode, darkTheme } from "./editor.mode.js";
 
 import mermaid from "mermaid";
@@ -86,6 +88,19 @@ async function initEditor() {
     editor.setFontSize(15);
 }
 
+
+let output;
+function initTSRelult() {
+    output = ace.edit("tsTranspileResult");
+    output.setTheme("ace/theme/monokai");
+    output.session.setMode("ace/mode/typescript");
+    editor.setReadOnly(true);
+}
+
+function updateTStranspile() {
+    
+}
+
 async function update() {
     const input = ace.edit("editor").getValue();
     const result = CompilerIntermediateProducts(input);
@@ -101,6 +116,7 @@ async function update() {
     setErrMsg(result,test_result);
     setModuleInfo(result);
     VMinit(document.querySelector("#vm"),result);
+    updateTStranspile();
 }
 
 function setErrMsg(compiler_products: IntermediateProducts,test_products: TestProducts) {
@@ -161,7 +177,7 @@ function setModuleInfo(product: IntermediateProducts) {
                     E("span",{class:"dark"},[T("->")]),
                     T(product.expanded_modules[name].outputs.length),
                 ]),
-                E("td",{},[T(product.expanded_modules[name].gates.length)]),
+                E("td",{},[T(product.expanded_modules[name].gates_sequential.length)]),
             ])
         )),
     ])]);
@@ -181,7 +197,7 @@ document.addEventListener("moduleChanged", (event) => {
 async function upadteGraph(product: IntermediateProducts,module_name: string) {
     console.log(product.expanded_modules[module_name]);
     const expanded = product.expanded_modules[module_name];
-    const wires = expanded.gates.map((g,i)=>g.map((v)=>{
+    const wires = expanded.gates_sequential.map((g,i)=>g.map((v)=>{
         if ("NorGate" in v) {
             return `nor${v.NorGate} --> nor${i}`;
         }
@@ -200,16 +216,16 @@ ${expanded.inputs>0?"subgraph Inputs":""}
 ${new Array(expanded.inputs).fill(0).map((v,i)=>`in${i}(in ${i})`).join("\n")}
 ${expanded.inputs>0?"end":""}
 
-${expanded.gates.length>0?`subgraph Gates[${module_name}]`:""}
+${expanded.gates_sequential.length>0?`subgraph Gates[${module_name}]`:""}
 ${constructGraph(product,module_name)[0]}
-${expanded.gates.length>0?"end":""}
+${expanded.gates_sequential.length>0?"end":""}
 
 ${expanded.outputs.length>0?"subgraph Outputs":""}
 ${expanded.outputs.map((v,i)=>`out${i}(out ${i})`).join("\n")}
 ${expanded.outputs.length>0?"end":""}
 
 ${new Array(expanded.inputs).fill(0).map((v,i)=>`class in${i} input;`).join("\n")}
-${expanded.gates.map((g,i)=>`class nor${i} gate;`).join("\n")}
+${expanded.gates_sequential.map((g,i)=>`class nor${i} gate;`).join("\n")}
 ${expanded.outputs.map((v,i)=>`class out${i} output;`).join("\n")}
 
 ${wires}
@@ -258,7 +274,10 @@ async function run() {
         document.querySelector("#layoutroot"),
         ["h",[4,1],[
             ["h",[1,5],[
-                ["c","moduleInfo"],
+                ["v",[2,1],[
+                    ["c","moduleInfo"],
+                    ["c","tsTranspiled"],
+                ]],
                 ["h",[3,1],[
                     ["v",[2,1],[
                         ["h",[1,3],[
@@ -283,8 +302,14 @@ async function run() {
             vmArea: ()=>{return E("div",{id:"vm"},[])},
             graph1Area: ()=>{return E("div",{id:"graph1"},[])},
             graph2Area: ()=>{return E("div",{id:"graph2"},[])},
+            tsTranspiled: ()=>{return E("div",{id:"transpile_area"},[
+                E("div",{},[
+                    E("input",{type:"button",value:"compile"},[]).Listen("click",update),
+                ]),
+                E("div",{id:"tsTranspileResult"},[]),
+            ])},
             editArea: ()=>E("div",{id:"editor_area"},[
-                E("div",{id:""},[
+                E("div",{},[
                     E("input",{type:"button",value:"compile"},[]).Listen("click",update),
                     E("span",{},[
                         E("input",{type:"checkbox",id:"autoCompile",checked:true},[]),
@@ -368,6 +393,7 @@ async function run() {
         }
     )
     await initEditor();
+    initTSRelult();
     {
         (document.querySelector("#vmSpeed_label") as HTMLLabelElement).innerText = (document.querySelector("#vmSpeed") as HTMLInputElement).value;
         (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;

@@ -16,7 +16,7 @@ struct Opt {
     #[arg(short = 'd', long = "docOut", value_name = "Document output File Path")]
     doc_output: Option<String>,
     #[arg(short = 'm', long = "module", value_name = "Name of module to compile")]
-    module: Vec<String>,
+    module: Option<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
     server: Option<String>,
     #[arg(short = 'w', long = "watch", value_name = "File Watch")]
@@ -50,10 +50,10 @@ async fn main() {
         None => server,
     };
     if server|watch|opt.run_vm.unwrap_or(false) {
-        native::watch::main(input_path, opt.output, opt.doc_output, opt.module, opt.run_vm.unwrap_or(false),watch,server,opt.server).await;
+        native::watch::main(input_path, opt.output, opt.doc_output, opt.module.unwrap_or("".to_string()), opt.run_vm.unwrap_or(false),watch,server,opt.server).await;
     }
     else {
-        let _ = native::common::process_input(&input_path, opt.module,opt.output,opt.doc_output );
+        let _ = native::common::process_input(&input_path, opt.module.unwrap_or("".to_string()),opt.output,opt.doc_output );
     }
     return;
 }

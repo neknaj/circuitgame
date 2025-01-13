@@ -19,7 +19,7 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Vec<String>, run_vm: bool, watch: bool, server: bool, server_port: Option<String>) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, output_modules_pattern: String, run_vm: bool, watch: bool, server: bool, server_port: Option<String>) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
@@ -40,7 +40,7 @@ pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path:
         Err(v) => {
             use colored::*;
             if !(watch|run_vm) {
-                let _ = super::common::process_input(&input_path, module,output_path,doc_output_path );
+                let _ = super::common::process_input(&input_path, output_modules_pattern,output_path,doc_output_path );
                 println!("{}:{} {}","[error]".red(),"webSock".cyan(),v);
                 return;
             }
@@ -70,7 +70,7 @@ pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path:
     let ws_tx_clone = ws_tx.clone();
     let fc_tx_clone = fc_tx.clone();
     let vmset_tx_clone = vmset_tx.clone();
-    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,module,output_path,doc_output_path,server_msg, run_vm,watch,server)});
+    tokio::spawn({ncg_tool(input_path,fc_tx_clone,vmset_tx_clone,ws_tx_clone,output_modules_pattern,output_path,doc_output_path,server_msg, run_vm,watch,server)});
 
     tokio::signal::ctrl_c().await.unwrap();
     println!("Exit");
@@ -234,7 +234,7 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Vec<String>, output_path: Vec<String>, doc_output_path: Option<String>, server_msg: Result<String,String>, run_vm: bool, watch: bool, server: bool) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,output_modules_pattern: String, output_path: Vec<String>, doc_output_path: Option<String>, server_msg: Result<String,String>, run_vm: bool, watch: bool, server: bool) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
@@ -254,7 +254,7 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
         }
         println!("");
 
-        let binaries = super::common::process_input(&input_path,module.clone(),output_path.clone(),doc_output_path.clone());
+        let binaries = super::common::process_input(&input_path,output_modules_pattern.clone(),output_path.clone(),doc_output_path.clone());
 
         let vmset_tx_clone = vmset_tx.clone();
         let ws_tx_clone = ws_tx.clone();
