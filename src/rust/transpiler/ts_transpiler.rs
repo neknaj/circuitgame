@@ -37,7 +37,7 @@ pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
             let out_func_gates = module.gates_sequential.iter().enumerate().map(|(index,value)| format!("            this.b[{}] = !( this.b[{}] || this.b[{}] );",index,value.0,value.1)).collect::<Vec<String>>().join("\n");
             let constructor_func = format!(
                 "        constructor () {{\n{}\n        }}",
-                format!("            this.b = createFixedLengthArray<boolean,{}>({},false);",module.gates_sequential.len()+module.inputs as usize,module.gates_sequential.len()+module.inputs as usize),
+                format!("            this.b = new Array({}).fill(false);",module.gates_sequential.len()+module.inputs as usize),
             );
             let next_func = format!(
                 "        next(): this {{\n{}\n{}\n        }}",
@@ -61,7 +61,7 @@ pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
             let module = format!(
                 "    \"{}\": class {{\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}    }}",
                 module.name,
-                format!("        private b: FixedLengthArray<boolean,{}>;",module.gates_sequential.len()+module.inputs as usize),
+                format!("        private b: boolean[];"),
                 format!("        static inputsLen: number = {};",module.inputs),
                 format!("        static outputsLen: number = {};",module.outputs.len()),
                 constructor_func,
@@ -76,8 +76,8 @@ pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
     // fixedLengthArray
     let fixed_len_arr = format!(
         "{}\n{}",
-        format!("type FixedLengthArray<T, N extends number, A extends any[] = []> = A extends {{ length: N }} ? A : FixedLengthArray<T, N, [ ...A, T ]>;"),
-        format!("function createFixedLengthArray<T, L extends number>(length: L, fillValue: T): FixedLengthArray<T, L> {{\n    return new Array(length).fill(fillValue) as FixedLengthArray<T, L>;\n}}"),
+        format!("export type FixedLengthArray<T, N extends number, A extends any[] = []> = A extends {{ length: N }} ? A : FixedLengthArray<T, N, [ ...A, T ]>;"),
+        format!("export function createFixedLengthArray<T, L extends number>(length: L, fillValue: T): FixedLengthArray<T, L> {{\n    return new Array(length).fill(fillValue) as FixedLengthArray<T, L>;\n}}"),
     );
     // classに入れる
     Ok(format!(
