@@ -19,6 +19,12 @@ pub enum Component {
     Using(Using),
     Module(Module),
     Test(Test),
+    Include(Include),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Include {
+    pub path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -18,6 +18,27 @@ fn identifier(input: &str) -> IResult<&str, String> {
     )(input)
 }
 
+fn file_path_1(input: &str) -> IResult<&str, String> {
+    map(
+        delimited(char('"'), take_while1(|c| c != '"'), char('"')),
+        String::from,
+    )(input)
+}
+
+fn file_path_2(input: &str) -> IResult<&str, String> {
+    map(
+        take_while1(|c: char| !c.is_whitespace() && c != ';'),
+        String::from,
+    )(input)
+}
+
+fn file_path(input: &str) -> IResult<&str, String> {
+    alt((
+        file_path_1,
+        file_path_2,
+    ))(input)
+}
+
 fn right_arrow(input: &str) -> IResult<&str, &str> {
     alt((
         tag("->"),
@@ -33,6 +54,14 @@ fn left_arrow(input: &str) -> IResult<&str, &str> {
         tag("<="),
         tag("<"),
         tag("<~"),
+    ))(input)
+}
+
+fn include_keyword(input: &str) -> IResult<&str, &str> {
+    alt((
+        tag("include"),
+        tag("Include"),
+        tag("INCLUDE"),
     ))(input)
 }
 
@@ -171,6 +200,21 @@ fn using(input: &str) -> IResult<&str, Using> {
     )(input)
 }
 
+fn include(input: &str) -> IResult<&str, Include> {
+    map(
+        tuple((
+            char('!'),
+            include_keyword,
+            multispace0,
+            file_path,
+            char(';'),
+        )),
+        |(_,_,_,path,_)| Include {
+            path,
+        },
+    )(input)
+}
+
 fn id_list(input: &str) -> IResult<&str, Vec<String>> {
     separated_list0(value_separator, identifier)(input)
 }
@@ -260,8 +304,7 @@ fn func_module(input: &str) -> IResult<&str, Module> {
             delimited(
                 char('{'),
                 many0(delimited(separator, gate, separator)),
-                char('}'),
-            ),
+                char('}')),
         )),
         |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
             func: true,
@@ -332,8 +375,7 @@ fn test(input: &str) -> IResult<&str, Test> {
             delimited(
                 char('{'),
                 many0(delimited(separator, test_pattern, separator)),
-                char('}'),
-            ),
+                char('}')),
         )),
         |(_, _, name, _, _, _, type_sig, _, patterns)| Test {
             name,
@@ -345,6 +387,7 @@ fn test(input: &str) -> IResult<&str, Test> {
 
 fn component(input: &str) -> IResult<&str, Component> {
     alt((
+        map(include, Component::Include),
         map(using, Component::Using),
         map(module, Component::Module),
         map(func_module, Component::Module),

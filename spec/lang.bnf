@@ -6,7 +6,7 @@
 <mName> := /([0-9a-zA-Z]|_)+/
 <mId> := /([0-9a-zA-Z]|_)+/
 <int> := /[0-9]+/
-<fileName> := "\"" ( not '\"' )+ "\"" | ( not <Space> )+
+<fileName> := "\"" ( not '\"' )+ "\"" | ( not ( <Space> | not ) ";" )+
 
 <mType> := <int> <rArrow> <int>
 <mTypeConcrete> := <int> <rArrow> <int>
@@ -25,7 +25,7 @@
 <gate_separator> := ":" | "=" | ":=" | "::=" | <lArrow>
 
 
-<include> := "#" <include_keyword> <fileName> ";"
+<include> := "!" <include_keyword> <fileName> ";"
 
 <using> := <using_keyword> "nor" ":" "2" <rArrow> "1" ";"
 <module> := <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
