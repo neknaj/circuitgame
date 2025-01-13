@@ -1,0 +1,74 @@
+name: Release Binary
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+' # 厳密なタグ指定
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target:
+          # x86_64
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
+          - x86_64-apple-darwin
+          # ARM
+          - aarch64-unknown-linux-gnu
+          - aarch64-pc-windows-msvc
+          - aarch64-apple-darwin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies for cross-compilation
+        run: |
+          if [[ "${{ matrix.target }}" == *"windows-gnu"* ]]; then
+            sudo apt-get update && sudo apt-get install -y mingw-w64
+          elif [[ "${{ matrix.target }}" == *"aarch64"* ]]; then
+            sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+          fi
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Add Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/ncg # ビルドしたバイナリのパス
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: ./artifacts
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          artifacts: artifacts/**/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Build or release failed!" # 必要に応じて通知ツールを追加
