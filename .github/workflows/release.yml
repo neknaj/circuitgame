@@ -1,5 +1,9 @@
 name: Auto Release After 6 Hours
 
+# Releasesへのファイル追加のために書き込み権限が必要
+permissions:
+  contents: write
+  
 on:
   schedule:
     - cron: "0 * * * *" # 毎時0分に実行
@@ -15,20 +19,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Get the last release commit
+        id: last_release_commit
+        run: |
+          last_release_commit=$(git rev-list --tags --max-count=1)
+          echo "last_release_commit=$last_release_commit" >> $GITHUB_ENV
+
+      - name: Get the latest commit
+        id: latest_commit
+        run: |
+          latest_commit=$(git rev-parse HEAD)
+          echo "latest_commit=$latest_commit" >> $GITHUB_ENV
+
       - name: Get last commit timestamp
         id: last_commit
         run: |
           echo "timestamp=$(git log -1 --format=%ct)" >> $GITHUB_ENV
 
-      - name: Check if 6 hours have passed
-        id: check_time
+      - name: Check release conditions
+        id: check_release_conditions
         run: |
+          # 6時間経過のチェック
           current_time=$(date +%s)
           last_commit_time=${{ env.timestamp }}
           time_diff=$((current_time - last_commit_time))
           echo "Time since last commit: $time_diff seconds"
+
           if [ $time_diff -lt 21600 ]; then
             echo "6 hours have not passed since the last commit. Skipping release."
+            exit 0
+          fi
+
+          # リリース条件のチェック（前回のリリースと最新コミットの一致）
+          if [ "${{ env.last_release_commit }}" = "${{ env.latest_commit }}" ]; then
+            echo "The last release commit matches the latest commit. Skipping release."
             exit 0
           fi
 
@@ -44,66 +68,75 @@ jobs:
           new_version="v${major}.${new_minor}.0"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "::set-output name=new_version::$new_version"
-
+  
   build:
-    needs: auto-release
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.job.os }}
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-gnu
-          - x86_64-apple-darwin
-          - aarch64-unknown-linux-gnu
-          - aarch64-pc-windows-msvc
-          - aarch64-apple-darwin
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use-cross: false
+            extension: ""
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            use-cross: true
+            extension: ""
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            use-cross: false
+            extension: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            use-cross: false
+            extension: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use-cross: false
+            extension: ".exe"
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v2
 
-      - name: Install dependencies for cross-compilation
+      # Rustのpackage名を取得して環境変数に入れておく。(後のステップで使用)
+      - name: Extract crate information
+        shell: bash
         run: |
-          if [[ "${{ matrix.target }}" == *"windows-gnu"* ]]; then
-            sudo apt-get update && sudo apt-get install -y mingw-w64
-          elif [[ "${{ matrix.target }}" == *"aarch64"* ]]; then
-            sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
-          fi
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
 
-      - name: Set up Rust
+      # rustcやcargoをインストール
+      - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          
-      - name: Set up WASM tool chain
-        run: npm run install-rust
-        
-      - name: Add Rust target
-        run: rustup target add ${{ matrix.target }}
+          target: ${{ matrix.target }}
+          override: true
+          profile: minimal
 
-      - name: Build binary
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      # targetに応じてcargoもしくはcrossを使用してビルド
+      - name: Build
+        uses: actions-rs/cargo@v1
         with:
-          name: ${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/ncg
+          use-cross: ${{ matrix.job.use-cross }}
+          command: build
+          args: --release --target ${{ matrix.target }}
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
+      # ビルド済みバイナリをリネーム
+      - name: Rename artifacts
+        shell: bash
+        run: |
+          mv target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}{,-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}}
 
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v3
+      # ビルド済みバイナリをReleasesに配置
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          path: ./artifacts
-
-      - name: Create Release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ needs.auto-release.outputs.version }}
+          files: |
+            target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
+          tag_name: ${{ needs.auto-release.outputs.version }}
+      
           releaseName: Release ${{ needs.auto-release.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
