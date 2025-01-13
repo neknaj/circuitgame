@@ -7,7 +7,7 @@ use super::super::vm;
 use super::super::compiler;
 
 // 入力処理を別関数として分離
-pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>) -> Vec<u32> {
+pub fn process_input(input_path: &str,output_modules: Vec<String>, output_path: Vec<String>, doc_output_path: Option<String>) -> Vec<Vec<u32>> {
     println!("< {} >\n","Neknaj Circuit Game".bold());
 
     println!("{}:{} input  file: {}","[info]".green(),"input ".cyan(),input_path);
@@ -40,20 +40,6 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
         return Vec::new();
     }
 
-    let binary = match module.clone() {
-        Some(module_name) => {
-            println!("{}:{} Compiling module: {}","[info]".green(),"compile".cyan(),module_name);
-            match compiler::serialize(result.clone(), module_name.as_str()) {
-                Ok(v) => v,
-                Err(v) => {
-                    println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
-                    return Vec::new()
-                }
-            }
-        },
-        None => { Vec::new() },
-    };
-
     let test_result = test::test(result.clone());
     for i in &test_result.warns {
         println!("{}:{} {}","[warn]".yellow(),"test".cyan(),i);
@@ -84,67 +70,119 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
             },
         };
         // typeに基づいてoutput
-        match module.clone() {
-            Some(module_name) => {
-                match out_type {
-                    "ncgb" => {
-                        if let Err(e) = write_binary_file(output.as_str(), binary.clone()) {
+        match out_type {
+            "ncgb" => {
+                if output_modules.len()>1 {
+                    println!("{}:{} {}","[error]".red(),"output".cyan(),format!("NCGb output doesn't support multiple modules: {}",output));
+                    println!("{}:{} {}","[info]".green(),"output".cyan(),format!("Only the first module was exported {}",output));
+                }
+                if output_modules.len()==0 {
+                    println!("{}:{} {}","[warn]".green(),"output".cyan(),format!("No module is specified to output: {}",output));
+                }
+                if let Some(module_name) = output_modules.get(0) {
+                    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+                        Ok(v) => v,
+                        Err(v) => {
+                            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                            return Vec::new()
+                        }
+                    };
+                    if let Err(e) = write_binary_file(output.as_str(), binary.clone()) {
+                        println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                    } else {
+                        println!("{}:{} Output completed: {}","[info]".green(),"output".cyan(),output);
+                    }
+                }
+            },
+            "c"|"cheader" => {
+                if output_modules.len()>1 {
+                    println!("{}:{} {}","[error]".red(),"transpile".cyan(),format!("NCGb output doesn't support multiple modules: {}",output));
+                    println!("{}:{} {}","[info]".green(),"transpile".cyan(),format!("Only the first module was exported to {}",output));
+                }
+                if output_modules.len()==0 {
+                    println!("{}:{} {}","[warn]".green(),"transpile".cyan(),format!("No module is specified to output: {}",output));
+                }
+                if let Some(module_name) = output_modules.get(0) {
+                    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+                        Ok(v) => v,
+                        Err(v) => {
+                            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                            return Vec::new()
+                        }
+                    };
+                    match crate::transpiler::c_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="cheader") {
+                        Ok(data) => {
+                            if let Err(e) = write_text_file(output.as_str(), &data) {
+                                println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                            } else {
+                                println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                            }
+                        },
+                        Err(err) => {
+                            println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                        }
+                    }
+                }
+            },
+            "ts"|"dts" => {
+                let mut modules = Vec::new();
+                for module_name in &output_modules {
+                    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+                        Ok(v) => v,
+                        Err(v) => {
+                            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                            return Vec::new()
+                        }
+                    };
+                    modules.push(deserialize_from_vec(&binary).unwrap());
+                }
+                match crate::transpiler::ts_transpiler::transpile(modules,out_type=="dts") {
+                    Ok(data) => {
+                        if let Err(e) = write_text_file(output.as_str(), &data) {
                             println!("{}:{} {}","[error]".red(),"output".cyan(),e);
                         } else {
-                            println!("{}:{} Output completed: {}","[info]".green(),"output".cyan(),output);
+                            println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
                         }
                     },
-                    "c"|"cheader" => {
-                        match crate::transpiler::c_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="cheader") {
-                            Ok(data) => {
-                                if let Err(e) = write_text_file(output.as_str(), &data) {
-                                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
-                                } else {
-                                    println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
-                                }
-                            },
-                            Err(err) => {
-                                println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
-                            }
-                        }
-                    },
-                    "ts"|"dts" => {
-                        match crate::transpiler::ts_transpiler::transpile(deserialize_from_vec(&binary).unwrap(),out_type=="dts") {
-                            Ok(data) => {
-                                if let Err(e) = write_text_file(output.as_str(), &data) {
-                                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
-                                } else {
-                                    println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
-                                }
-                            },
-                            Err(err) => {
-                                println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
-                            }
-                        }
-                    },
-                    "js" => {
-                        match crate::transpiler::js_transpiler::transpile(deserialize_from_vec(&binary).unwrap()) {
-                            Ok(data) => {
-                                if let Err(e) = write_text_file(output.as_str(), &data) {
-                                    println!("{}:{} {}","[error]".red(),"output".cyan(),e);
-                                } else {
-                                    println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
-                                }
-                            },
-                            Err(err) => {
-                                println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
-                            }
-                        }
-                    },
-                    _ => {
-                        println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Unsupported output type was specified: {} for {}",out_type,output));
-                    },
-                };
+                    Err(err) => {
+                        println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                    }
+                }
             },
-            None => {
-                println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Output module was not specified for {}",output));
+            "js" => {
+                if output_modules.len()>1 {
+                    println!("{}:{} {}","[error]".red(),"transpile".cyan(),format!("NCGb output doesn't support multiple modules: {}",output));
+                    println!("{}:{} {}","[info]".green(),"transpile".cyan(),format!("Only the first module was exported to {}",output));
+                }
+                if output_modules.len()==0 {
+                    println!("{}:{} {}","[warn]".green(),"transpile".cyan(),format!("No module is specified to output: {}",output));
+                }
+                if let Some(module_name) = output_modules.get(0) {
+                    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+                        Ok(v) => v,
+                        Err(v) => {
+                            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                            return Vec::new()
+                        }
+                    };
+                    match crate::transpiler::js_transpiler::transpile(deserialize_from_vec(&binary).unwrap()) {
+                        Ok(data) => {
+                            if let Err(e) = write_text_file(output.as_str(), &data) {
+                                println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                            } else {
+                                println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                            }
+                        },
+                        Err(err) => {
+                            println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                        }
+                    }
+                }
             },
-        }
+            _ => {
+                println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Unsupported output type was specified: {} for {}",out_type,output));
+            },
+        };
     }
     match document(result.clone()) {
         Ok(doc_str)=>{
@@ -166,7 +204,18 @@ pub fn process_input(input_path: &str,module: Option<String>, output_path: Vec<S
         }
     };
 
-    binary
+    let mut binaries = Vec::new();
+    for module_name in &output_modules {
+        let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+            Ok(v) => v,
+            Err(v) => {
+                println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                return Vec::new()
+            }
+        };
+        binaries.push(binary);
+    }
+    binaries
 }
 
 

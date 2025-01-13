@@ -19,7 +19,7 @@ use std::path::Path;
 use std::collections::HashMap;
 
 
-pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Option<String>, run_vm: bool, watch: bool, server: bool, server_port: Option<String>) {
+pub async fn main(input_path: String, output_path: Vec<String>, doc_output_path: Option<String>, module: Vec<String>, run_vm: bool, watch: bool, server: bool, server_port: Option<String>) {
     // tokioのbroadcastチャンネルを使用
     let (ws_tx, _ws_rx) = broadcast::channel::<String>(100); // websocket送信
     let (fc_tx, _fc_rx) = broadcast::channel::<String>(100); // ncg処理 (file change 通知)
@@ -234,7 +234,7 @@ async fn handle_connection(
 
 
 
-async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Option<String>, output_path: Vec<String>, doc_output_path: Option<String>, server_msg: Result<String,String>, run_vm: bool, watch: bool, server: bool) {
+async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx: broadcast::Sender<u32>, ws_tx: broadcast::Sender<String>,module: Vec<String>, output_path: Vec<String>, doc_output_path: Option<String>, server_msg: Result<String,String>, run_vm: bool, watch: bool, server: bool) {
     let mut rx = fc_tx.subscribe();  // メッセージ受信用のreceiverを作成
     loop {
         // inputを処理
@@ -254,7 +254,7 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
         }
         println!("");
 
-        let binary = super::common::process_input(&input_path,module.clone(),output_path.clone(),doc_output_path.clone());
+        let binaries = super::common::process_input(&input_path,module.clone(),output_path.clone(),doc_output_path.clone());
 
         let vmset_tx_clone = vmset_tx.clone();
         let ws_tx_clone = ws_tx.clone();
@@ -266,18 +266,20 @@ async fn ncg_tool(input_path: String, fc_tx: broadcast::Sender<String>, vmset_tx
             }
             _ = async {
                 if run_vm {
-                    if (!match module.clone() {Some(_)=>true,_=>false}) {
+                    if let Some(binary) = binaries.get(0) {
+                        tokio::select! {
+                            vm_res = super::common::runVM(binary.clone(), vmset_tx_clone,ws_tx_clone) => {
+                                match vm_res {
+                                    Ok(_) => {},
+                                    Err(_) => { sleep(Duration::from_secs(100)).await; },
+                                }
+                            }
+                        }
+                    }
+                    else {
                         println!("{}:{} {}","[error]".red(),"output".cyan(),format!("Output module was not specified for VM"));
                         sleep(Duration::from_secs(100)).await;
                         return;
-                    }
-                    tokio::select! {
-                        vm_res = super::common::runVM(binary, vmset_tx_clone,ws_tx_clone) => {
-                            match vm_res {
-                                Ok(_) => {},
-                                Err(_) => { sleep(Duration::from_secs(100)).await; },
-                            }
-                        }
                     }
                 }
                 else {

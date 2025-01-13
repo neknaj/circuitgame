@@ -16,7 +16,7 @@ struct Opt {
     #[arg(short = 'd', long = "docOut", value_name = "Document output File Path")]
     doc_output: Option<String>,
     #[arg(short = 'm', long = "module", value_name = "Name of module to compile")]
-    module: Option<String>,
+    module: Vec<String>,
     #[arg(short = 's', long = "server", value_name = "Open server for API")]
     server: Option<String>,
     #[arg(short = 'w', long = "watch", value_name = "File Watch")]
