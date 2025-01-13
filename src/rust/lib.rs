@@ -7,7 +7,6 @@ mod vm;
 mod resourcemanager;
 
 use wasm_bindgen::prelude::*;
-use std::{format, str};
 
 
 // resource manager
@@ -69,7 +68,39 @@ pub fn export_compile(input: &str,module: &str) -> Vec<u32> {
 
 
 #[wasm_bindgen(js_name=TranspileTS)]
-pub fn export_ts_transpile(modules_res_id: Vec<u32>) -> String {
+pub fn export_transpile(input: &str,output_modules_pattern: &str) -> String {
+    let result = compiler::intermediate_products(&input);
+    if result.errors.len()>0 {
+        return format!("// Error:\n{}",result.errors.join("\n"));
+    }
+    let mut output_modules = Vec::new();
+    let regex_pattern = regex::Regex::new(&format!("^({})$",output_modules_pattern)).unwrap();
+    for test_str in result.defined_func_module_list.clone() {
+        if regex_pattern.is_match(&test_str) {
+            output_modules.push(test_str.clone());
+        }
+    }
+    for test_str in result.defined_non_func_module_list.clone() {
+        if regex_pattern.is_match(&test_str) {
+            output_modules.push(test_str.clone());
+        }
+    }
+    let mut modules = Vec::new();
+    for module_name in &output_modules {
+        let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+            Ok(v) => v,
+            Err(v) => { return format!("// Error: {}",v); }
+        };
+        modules.push(Module::new(binary).unwrap());
+    }
+    match transpiler::ts_transpiler::transpile(modules,false) {
+        Ok(v) => v,
+        Err(v) => format!("// Error: {}",v)
+    }
+}
+
+#[wasm_bindgen(js_name=TranspileTSresId)]
+pub fn export_ts_transpile_res_id(modules_res_id: Vec<u32>) -> String {
     let mut modules = Vec::new();
     for res_id in modules_res_id {
         let mut vmres = match VM_resource.lock() {

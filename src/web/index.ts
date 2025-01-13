@@ -1,4 +1,4 @@
-import init, { Compile, NCG_Test, CompilerIntermediateProducts, IntermediateProducts } from './circuitgame.js';
+import init, { Compile, NCG_Test, CompilerIntermediateProducts, IntermediateProducts, Transpiler } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
 import VMinit, { tick, updateLogiAnaGraph } from './vm.js';
 
@@ -94,11 +94,12 @@ function initTSRelult() {
     output = ace.edit("tsTranspileResult");
     output.setTheme("ace/theme/monokai");
     output.session.setMode("ace/mode/typescript");
-    editor.setReadOnly(true);
+    output.setReadOnly(true);
 }
 
-function updateTStranspile() {
-    
+function updateTStranspile(input) {
+    output.setValue(Transpiler.TS.TranspileTS(input,".*"));
+    output.moveCursorTo(0, 0);
 }
 
 async function update() {
@@ -116,7 +117,7 @@ async function update() {
     setErrMsg(result,test_result);
     setModuleInfo(result);
     VMinit(document.querySelector("#vm"),result);
-    updateTStranspile();
+    updateTStranspile(input);
 }
 
 function setErrMsg(compiler_products: IntermediateProducts,test_products: TestProducts) {
@@ -392,8 +393,8 @@ async function run() {
             ]),
         }
     )
-    await initEditor();
     initTSRelult();
+    await initEditor();
     {
         (document.querySelector("#vmSpeed_label") as HTMLLabelElement).innerText = (document.querySelector("#vmSpeed") as HTMLInputElement).value;
         (document.querySelector("#digiAnaLastN_label") as HTMLLabelElement).innerText = (document.querySelector("#digiAnaLastN") as HTMLInputElement).value;
