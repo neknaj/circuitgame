@@ -1,23 +1,60 @@
-name: Release Binary
+name: Auto Release After 6 Hours
 
 on:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+' # 厳密なタグ指定
+  schedule:
+    - cron: "0 * * * *" # 毎時0分に実行
 
 jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.set_version.outputs.new_version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get last commit timestamp
+        id: last_commit
+        run: |
+          echo "timestamp=$(git log -1 --format=%ct)" >> $GITHUB_ENV
+
+      - name: Check if 6 hours have passed
+        id: check_time
+        run: |
+          current_time=$(date +%s)
+          last_commit_time=${{ env.timestamp }}
+          time_diff=$((current_time - last_commit_time))
+          echo "Time since last commit: $time_diff seconds"
+          if [ $time_diff -lt 21600 ]; then
+            echo "6 hours have not passed since the last commit. Skipping release."
+            exit 1
+          fi
+
+      - name: Get latest version tag
+        id: set_version
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          version=${latest_tag#v}
+          major=${version%%.*}
+          minor=${version#*.}
+          minor=${minor%%.*}
+          new_minor=$((minor + 1))
+          new_version="v${major}.${new_minor}.0"
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "::set-output name=new_version::$new_version"
+
   build:
-    name: Build and Release
+    needs: auto-release
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
         target:
-          # x86_64
           - x86_64-unknown-linux-gnu
           - x86_64-pc-windows-gnu
           - x86_64-apple-darwin
-          # ARM
           - aarch64-unknown-linux-gnu
           - aarch64-pc-windows-msvc
           - aarch64-apple-darwin
@@ -38,7 +75,10 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-
+          
+      - name: Set up WASM tool chain
+        run: npm run install-rust
+        
       - name: Add Rust target
         run: rustup target add ${{ matrix.target }}
 
@@ -49,10 +89,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/ncg # ビルドしたバイナリのパス
+          path: target/${{ matrix.target }}/release/ncg
 
   release:
-    name: Create Release
     needs: build
     runs-on: ubuntu-latest
 
@@ -65,10 +104,6 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ github.ref_name }}
-          artifacts: artifacts/**/*
+          tag: ${{ needs.auto-release.outputs.version }}
+          releaseName: Release ${{ needs.auto-release.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify on failure
-        if: failure()
-        run: echo "Build or release failed!" # 必要に応じて通知ツールを追加
