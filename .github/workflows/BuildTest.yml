@@ -10,8 +10,68 @@ on:
       -  '.github/workflows/BuildTest.yml'
 
 jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.set_version.outputs.new_version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get the last release commit
+        id: last_release_commit
+        run: |
+          last_release_commit=$(git rev-list --tags --max-count=1)
+          echo "last_release_commit=$last_release_commit" >> $GITHUB_ENV
+
+      - name: Get the latest commit
+        id: latest_commit
+        run: |
+          latest_commit=$(git rev-parse HEAD)
+          echo "latest_commit=$latest_commit" >> $GITHUB_ENV
+
+      - name: Get last commit timestamp
+        id: last_commit
+        run: |
+          echo "timestamp=$(git log -1 --format=%ct)" >> $GITHUB_ENV
+
+      # - name: Check release conditions
+      #   id: check_release_conditions
+      #   run: |
+      #     # 6時間経過のチェック
+      #     current_time=$(date +%s)
+      #     last_commit_time=${{ env.timestamp }}
+      #     time_diff=$((current_time - last_commit_time))
+      #     echo "Time since last commit: $time_diff seconds"
+
+      #     if [ $time_diff -lt 21600 ]; then
+      #       echo "6 hours have not passed since the last commit. Skipping release."
+      #       exit 0
+      #     fi
+
+      #     # リリース条件のチェック（前回のリリースと最新コミットの一致）
+      #     if [ "${{ env.last_release_commit }}" = "${{ env.latest_commit }}" ]; then
+      #       echo "The last release commit matches the latest commit. Skipping release."
+      #       exit 0
+      #     fi
+
+      - name: Get latest version tag
+        id: set_version
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          version=${latest_tag#v}
+          major=${version%%.*}
+          minor=${version#*.}
+          minor=${minor%%.*}
+          new_minor=$((minor + 1))
+          new_version="v${major}.${new_minor}.0"
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "::set-output name=new_version::$new_version"
+          
   build:
-    # needs: [auto-release]
+    needs: [auto-release]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
