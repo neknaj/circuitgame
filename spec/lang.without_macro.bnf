@@ -1,7 +1,7 @@
 <file> := <components>
 
 <components> := <component> <components> | ε
-<component> := <using> | <import> | <module> | <test>
+<component> := <using> | <import> | <module> | <graphical> | <test>
 
 <mName> := /([0-9a-zA-Z]|_)+/
 <mId> := /([0-9a-zA-Z]|_)+/
@@ -20,6 +20,7 @@
 <using_keyword> := "using" | "Using" | "USING" | "use" | "Use" | "USE"
 <module_keyword> := "module" | "Module" | "MODULE" | "def" | "Def" | "DEF"
 <func_module_keyword> := "func" | "Func" | "FUNC" | "fn" | "Fn" | "FN"
+<graphical_keyword> := "graphical" | "Graphical" | "GRAPHICAL"
 <test_keyword> := "test" | "Test" | "TEST"
 <true>  := "t" | "T" | "h" | "H" | "1"
 <false> := "f" | "F" | "l" | "L" | "0"
@@ -40,6 +41,15 @@
 <values> := <bool> <values> | ε
 <testPattern> := <values> <rArrow> <values> ";"
 <testPatterns> := <testPattern> <testPatterns> | ε
+
+
+<graphical> := <graphical_keyword> <mName> ":" <imgSize> "{" <pixels> "}"
+<imgSize> := "auto" | /[0-9]+/ "x"? /[0-9]+/
+<coord> := /[0-9]+/ /[0-9]+/
+<color> := "#" /[0-9]{6}/
+<ioName> := "i" /[0-9]+/ | "o" /[0-9]+/
+<pixel> := <coord> <gate_separator> <ioName> <lArrow>? <color> <color> ";"
+<pixels> := <pixel> <pixels> | ε
 
 
 # 以下は、色んな所に良い感じに入れられるが、BNFが読みにくくなるので、上記の文法からは消し去ってある
