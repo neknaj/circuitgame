@@ -147,6 +147,3 @@ jobs:
       
           releaseName: Release ${{ needs.auto-release.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
-      
-          releaseName: Release ${{ needs.auto-release.outputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
