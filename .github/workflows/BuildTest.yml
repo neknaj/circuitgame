@@ -40,12 +40,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        
+      # Linux 環境用の依存関係インストール
+      - name: Install dependencies (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc-multilib gcc-aarch64-linux-gnu
 
+      # macOS 環境用の Xcode Command Line Tools インストール
+      - name: Install Xcode Command Line Tools (macOS only)
+        if: runner.os == 'macOS'
+        run: |
+          xcode-select --install || echo "Xcode tools already installed"
+          
       # Rustのpackage名を取得して環境変数に入れておく。(後のステップで使用)
       - name: Extract crate information
         shell: bash
         run: |
-          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | sed -ns '2p')" >> $GITHUB_ENV
 
       # rustcやcargoをインストール
       - name: Install Rust toolchain
