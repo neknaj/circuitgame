@@ -1,4 +1,4 @@
-name: ReleaseTest
+name: BuildTest
 
 # Releasesへのファイル追加のために書き込み権限が必要
 permissions:
@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     # needs: [auto-release]
-    runs-on: ${{ matrix.job.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
