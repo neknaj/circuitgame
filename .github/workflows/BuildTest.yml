@@ -1,0 +1,84 @@
+name: ReleaseTest
+
+# Releasesへのファイル追加のために書き込み権限が必要
+permissions:
+  contents: write
+  
+on:
+  push:
+    paths:
+      -  '.github/workflows/BuildTest.yml'
+
+jobs:
+  build:
+    # needs: [auto-release]
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            use-cross: false
+            extension: ""
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            use-cross: true
+            extension: ""
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            use-cross: false
+            extension: ""
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            use-cross: false
+            extension: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            use-cross: false
+            extension: ".exe"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Rustのpackage名を取得して環境変数に入れておく。(後のステップで使用)
+      - name: Extract crate information
+        shell: bash
+        run: |
+          echo "PROJECT_NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' Cargo.toml | head -n1)" >> $GITHUB_ENV
+
+      # rustcやcargoをインストール
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+          profile: minimal
+
+      # targetに応じてcargoもしくはcrossを使用してビルド
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.job.use-cross }}
+          command: build
+          args: --release --target ${{ matrix.target }}
+
+      # ビルド済みバイナリをリネーム
+      - name: Rename artifacts
+        shell: bash
+        run: |
+          mv target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}{,-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}}
+
+      # ビルド済みバイナリをReleasesに配置
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
+          tag_name: ${{ needs.auto-release.outputs.version }}
+      
+          releaseName: Release ${{ needs.auto-release.outputs.version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
