@@ -5,11 +5,37 @@
 
 Circuit Game is a simulation tool for designing and testing digital circuits. It allows users to define modules, gates, and tests for their circuits and provides tools for compiling and testing these designs.
 
-## Installation
+# Key Features
+- DSL for describing logic circuits
+- Transpile to TypeScript
+- Development using both CLI and Web
+
+
+# Installation
 
 To install the project, follow these steps:
 
-1. Clone the repository:
+## Software required
+- git
+- rust, cargo
+- node, npm
+
+## Build CircuitGame CLI Tool
+1. Clone  
+    ```sh
+    git clone https://github.com/neknaj/circuitgame
+    cd circuitgame
+    ```
+2. Build  
+    ```sh
+    git pull
+    cargo build --release
+    # The built binary is: ./target/release/circuitgame_bin
+    ```
+
+## Build CircuitGame Web Tool
+
+1. Clone:
     ```sh
     git clone https://github.com/neknaj/circuitgame.git
     cd circuitgame
@@ -27,17 +53,15 @@ To install the project, follow these steps:
 
 ## Usage
 
-### Command Line Interface
+This software is intended for development using both CLI and a Web Browser.  
+The CLI tool has a file watcher and websocket communication.  
 
-The project includes a command-line interface for compiling and testing circuits. Use the following command to see the available options:
 ```sh
-cargo run -- --help
+cargo run -- -i spec/sample.ncg -s 8080
+# or: ncg -i spec/sample.ncg -s 8080
 ```
 
-### Web Interface
-
-To use the web interface, open `index.html` in your browser.  
-Currently, you can only view the output in the Developer Tools console.
+Click the link displayed in the console to view the results in your web browser.  
 
 ## Notation
 
@@ -56,6 +80,7 @@ using nor:2->1;
 module not (x)->(a) {
     a: nor <- x x;
 }
+
 // Providing tests for the not module
 test not:1->1 {
     t -> f;
