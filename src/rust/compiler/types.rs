@@ -42,6 +42,13 @@ pub struct Module {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct Graphical {
+    pub name: String,
+    pub size: (u32,u32),
+    pub pixels: Vec<Pixel>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct Test {
     pub name: String,
     pub type_sig: MType,
@@ -53,6 +60,19 @@ pub struct Gate {
     pub outputs: Vec<String>,
     pub module_name: String,
     pub inputs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Pixel {
+    pub coord: (u32,u32),
+    pub io_index: IoIndex,
+    pub color: (String,String),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct IoIndex {
+    pub io_type: String,
+    pub index: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]

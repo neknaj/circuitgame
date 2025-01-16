@@ -387,11 +387,13 @@ fn test(input: &str) -> IResult<&str, Test> {
 
 fn component(input: &str) -> IResult<&str, Component> {
     alt((
-        map(include, Component::Include),
         map(using, Component::Using),
+        // map(import, Component::Import),
         map(module, Component::Module),
+        // map(graphical, Component::Graphical),
         map(func_module, Component::Module),
         map(test, Component::Test),
+        map(include, Component::Include),
     ))(input)
 }
 

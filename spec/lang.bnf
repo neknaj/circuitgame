@@ -50,8 +50,8 @@
 <imgSize> := "auto" | /[0-9]+/ "x"? /[0-9]+/
 <coord> := /[0-9]+/ /[0-9]+/
 <color> := "#" /[0-9]{6}/
-<ioName> := "i" /[0-9]+/ | "o" /[0-9]+/
-<pixel> := <coord> <gate_separator> <ioName> <lArrow>? <color> <color> ";"
+<ioIndex> := "i" /[0-9]+/ | "o" /[0-9]+/
+<pixel> := <coord> <gate_separator> <ioIndex> <lArrow>? <color> <color> ";"
 <pixels> := <pixel> <pixels> | ε
 
 
