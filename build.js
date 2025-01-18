@@ -88,8 +88,11 @@ async function getFile(savePath,url) {
 }
 
 async function main() {
+    const args = process.argv.slice(2);
     makedir();
-    await buildRust();
+    if (!args.includes("-tsonly")) {
+        await buildRust();
+    }
     await copyFiles([
         [
             "./pkg/circuitgame_lib.js",
@@ -104,7 +107,7 @@ async function main() {
             "./dist/circuitgame_lib_bg.wasm"
         ],
     ]);
-    await getFile('./src/web/cdom.ts','https://raw.githubusercontent.com/neknaj/cDom/2622d7887d1fae564e1e5b989ea38e2243e918bf/cdom_module.ts');
+    await getFile('./src/web/cdom.ts','https://raw.githubusercontent.com/neknaj/cDom/50a65673454c7286830f0d131f0512ddf46a3844/cdom_module.ts');
     if (await getFile('./src/web/layout.js','https://raw.githubusercontent.com/neknaj/webSplitLayout/c7e1c52cb37a8bfbf9968b825c05a2e9924ca88e/type1/layout.js')) {
         fs.readFile('./src/web/layout.js', 'utf8', (err, data) => {
             const updatedData = "import { elm } from './cdom.js';\n\n" + data + "\n\nexport { initlayout };";

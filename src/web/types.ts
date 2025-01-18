@@ -33,7 +33,7 @@ export interface Pixel {
 }
 
 export interface IoIndex {
-    type: "input" | "output",
+    io_type: "input" | "output",
     index: number,
 }
 

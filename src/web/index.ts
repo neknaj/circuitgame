@@ -294,7 +294,7 @@ async function run() {
                                 ["c","vmArea"],
                                 ["c","vmCtrlArea"],
                             ]],
-                            ["c","graph1Area"],
+                            ["c","visualizeArea"],
                         ]],
                         ["c","graph2Area"],
                     ]],
@@ -309,7 +309,10 @@ async function run() {
         {
             moduleInfo: ()=>{return E("div",{id:"moduleInfo"},[])},
             vmArea: ()=>{return E("div",{id:"vm"},[])},
-            graph1Area: ()=>{return E("div",{id:"graph1"},[])},
+            visualizeArea: ()=>{return E("div",{},[
+                E("div",{id:"graphicalIO"},[]),
+                E("div",{id:"graph1"},[]),
+            ])},
             graph2Area: ()=>{return E("div",{id:"graph2"},[])},
             tsTranspiled: ()=>{return E("div",{id:"transpile_area"},[
                 E("div",{},[
