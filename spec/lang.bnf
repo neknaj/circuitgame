@@ -56,13 +56,30 @@
 <pixels> := <pixel> <pixels> | ε
 
 
+<macro_define> := "!" <macro_expr> <macroTypeAnnotation>
+<macro_expr> := <macro_func_call> | <macro_chain>
+<macro_chain> := "{" <macro_chained_func_call> "}"
+<macro_chained_func_call> := <macro_func_call> <macro_chained_func_call> | ε
+<macroTypeAnnotation> := ":" <macroType>
+<macroType> := /[a-zA-Z_][0-9a-zA-Z_]*/
+<macro_func_call> := "(" <macro_func_name> <macro_func_args> ")"
+<macro_func_args> := <macro_func_arg> <macro_func_args> | ε
+<macro_func_arg> := <macro_number> | <macro_variable> | <macro_string>
+<macro_number> := /[0-9]+/
+<macro_variable> := /[a-zA-Z_][0-9a-zA-Z_]*/
+<macro_string> := "\"" <macro_string_letters> "\""
+<macro_string_letters> := <macro_string_letter> <macro_string_letters> | ε
+<macro_string_letter> := <macro_string_letter_escaped> | ( not '\"' )
+<macro_string_letter_escaped> := "\\0" | "\\'" | "\\\"" | "\\\\" | "\\n" | "\\r" | "\\v" | "\\t" | "\\b" | "\\f"
+
+
 # 以下は、色んな所に良い感じに入れられるが、BNFが読みにくくなるので、上記の文法からは消し去ってある
 
 <LineComment> := ("//") /[^\r\n]/ ( "\n" | "\r\n" )
 
 # 比較的どこにでも入れられる
-<Space> := " " | "\t" | "\n" | "\r"
+<Space> := " " | "," | "\t" | "\n" | "\r"
 # <file>直下と、<module>,<using>の{}直前と中で使える, コメントを許す
 <Separator> := ( <Space>+ | <LineComment> )*
-# <mId>と<bool>の区切りに使える, コンマ区切りを許す
-<ValueSeparator> := <Space>+ | <Space>* "," <Space>*
+# <mId>と<bool>の区切りに使える, コメントを許さない
+<ValueSeparator> := <Space>+
