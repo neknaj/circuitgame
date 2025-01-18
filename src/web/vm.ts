@@ -1,6 +1,7 @@
 import { Compile, VM } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
-import { IntermediateProducts, CompiledModule, CompiledGateInput, Module } from './types.js';
+import { IntermediateProducts, CompiledModule, CompiledGateInput, Module, Graphical } from './types.js';
+import { constantOtherSymbol } from 'ace-builds/src-noconflict/mode-ruby_highlight_rules';
 
 let vm_id = null;
 let selected = null;
@@ -45,13 +46,16 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
     product.module_type_list
     const moduleType = product.module_type_list.filter(m=>m.name==module_name)[0];
     console.log(moduleType);
+    if (input.length==moduleType.mtype.input_count) {
+        input = new Array(moduleType.mtype.input_count).fill(0);
+    }
     elm.Add(E("h2",{},[T(module_name)]));
     elm.Add(E("h3",{},[T("input")]));
     elm.Add(E("div",{class:"input"},Array(moduleType.mtype.input_count).fill(0).map(
         (_,i) => E("span",{},[
             (() => {
                 let inputElm = E("input",{type:"checkbox",id:"input"+i},[])
-                if (input.length==moduleType.mtype.input_count&&input[i]==1) {
+                if (input[i]==1) {
                     inputElm.setAttribute("checked","true");
                 }
                 return inputElm;
@@ -84,6 +88,7 @@ function init(elm: HTMLDivElement,product: IntermediateProducts,module_name: str
         waveData = new Array(moduleType.mtype.input_count+moduleType.mtype.output_count).fill(0).map(x=>[]);
         waveLabels = [...modulesAST.inputs,...modulesAST.outputs];
     }
+    CreateGraphdcalIO(product,module_name);
 }
 
 // 1tick進める
@@ -107,6 +112,8 @@ export function tick() {
     if ((document.querySelector("#graph1_switch") as HTMLInputElement).checked) {
         changeGraphColors();
     }
+    // graphical io を更新
+    graphicalIO_update();
 }
 
 export function updateLogiAnaGraph() {
@@ -290,3 +297,101 @@ function createLogicAnalyzerGraph(data: number[][], labels: string[], channelTyp
 
     return svg;
 };
+
+
+var graphicalIO_update: ()=>any = ()=>{};
+function CreateGraphdcalIO(product: IntermediateProducts, module_name: string) {
+    const graphical_ = product.ast.components.filter(component=>component.type=="Graphical"&&component.name==module_name);
+    if (graphical_.length<1) {
+        console.log("no graphical");
+        return
+    }
+    const graphical = graphical_[0] as Graphical;
+    console.log(graphical);
+    let width = 0;
+    let height = 0;
+    if (graphical.size.type=="Size") {
+        width = graphical.size.width;
+        height = graphical.size.height;
+    }
+    type color = [number,number,number];
+    let input_map: { [key:number]: [number, color,color]} = {}; // pixel -> index of input, on color, off color
+    let output_map: { [key:number]: [number, color,color]} = {}; // pixel -> index of output, on color, off color
+    let pixel_encoder = (x,y) => x+y*width;
+    for (let pixel of graphical.pixels) {
+        if (pixel.io_index.io_type=="input") {
+            input_map[pixel_encoder(...pixel.coord)] = [pixel.io_index.index,pixel.color.on,pixel.color.off];
+        }
+        if (pixel.io_index.io_type=="output") {
+            output_map[pixel_encoder(...pixel.coord)] = [pixel.io_index.index,pixel.color.on,pixel.color.off];
+        }
+    }
+    console.log(input_map);
+    console.log(output_map);
+    document.querySelector("#graphicalIO")?.Replace([E("canvas",{width,height},[]).Proc((cnv: HTMLCanvasElement) => {
+        const ctx = cnv.getContext('2d');
+        ctx.fillStyle = "black";
+        ctx.fillRect(0,0,width,height);
+
+        // マウスクリックイベントを設定
+        cnv.addEventListener('click', (event: MouseEvent) => {
+            // CSSの拡大縮小を考慮したクリック位置を計算する
+            const rect = cnv.getBoundingClientRect();
+            const scaleX = cnv.width / rect.width;
+            const scaleY = cnv.height / rect.height;
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+            console.log(`クリック座標: (${x}, ${y})`);
+            { // inputを更新する
+                const index = pixel_encoder(Math.floor(x),Math.floor(y));
+                if (index in input_map) {
+                    let input_index = input_map[index][0];
+                    const input_elm = (Array.from(document.querySelectorAll(".input input"))[input_index] as HTMLInputElement);
+                    console.log(index,input_index,input[input_index])
+                    input_elm.checked = input[input_index]==1?false:true;
+                    input[input_index] = input[input_index]==1?0:1;
+                    console.log(index,input_index,input[input_index])
+                }
+            }
+            graphicalIO_update();
+        });
+
+        graphicalIO_update = ()=>{
+            const arr = new Uint8ClampedArray(width*height*4).fill(0);
+            for (let index_ of Object.keys(input_map)) {
+                const in_ = input_map[index_];
+                let index = Number(index_);
+                if (input[in_[0]]==1) {
+                    arr[index*4+0] = in_[1][0];
+                    arr[index*4+1] = in_[1][1];
+                    arr[index*4+2] = in_[1][2];
+                    arr[index*4+3] = 255;
+                }
+                else {
+                    arr[index*4+0] = in_[2][0];
+                    arr[index*4+1] = in_[2][1];
+                    arr[index*4+2] = in_[2][2];
+                    arr[index*4+3] = 255;
+                }
+            }
+            const output = VM.getOutput(vm_id);
+            for (let index_ of Object.keys(output_map)) {
+                const out_ = output_map[index_];
+                let index = Number(index_);
+                if (output[out_[0]]==1) {
+                    arr[index*4+0] = out_[1][0];
+                    arr[index*4+1] = out_[1][1];
+                    arr[index*4+2] = out_[1][2];
+                    arr[index*4+3] = 255;
+                }
+                else {
+                    arr[index*4+0] = out_[2][0];
+                    arr[index*4+1] = out_[2][1];
+                    arr[index*4+2] = out_[2][2];
+                    arr[index*4+3] = 255;
+                }
+            }
+            ctx.putImageData(new ImageData(arr,width,height),0,0);
+        }
+    })]);
+}

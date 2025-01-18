@@ -18,6 +18,48 @@ fn identifier(input: &str) -> IResult<&str, String> {
     )(input)
 }
 
+fn hex_digit(input: &str) -> IResult<&str, char> {
+    alt((
+        char('0'),
+        char('1'),
+        char('2'),
+        char('3'),
+        char('4'),
+        char('5'),
+        char('6'),
+        char('7'),
+        char('8'),
+        char('9'),
+        char('a'),
+        char('b'),
+        char('c'),
+        char('d'),
+        char('e'),
+        char('f'),
+    ))(input)
+}
+
+fn file_path_1(input: &str) -> IResult<&str, String> {
+    map(
+        delimited(char('"'), take_while1(|c| c != '"'), char('"')),
+        String::from,
+    )(input)
+}
+
+fn file_path_2(input: &str) -> IResult<&str, String> {
+    map(
+        take_while1(|c: char| !c.is_whitespace() && c != ';'),
+        String::from,
+    )(input)
+}
+
+fn file_path(input: &str) -> IResult<&str, String> {
+    alt((
+        file_path_1,
+        file_path_2,
+    ))(input)
+}
+
 fn right_arrow(input: &str) -> IResult<&str, &str> {
     alt((
         tag("->"),
@@ -33,6 +75,14 @@ fn left_arrow(input: &str) -> IResult<&str, &str> {
         tag("<="),
         tag("<"),
         tag("<~"),
+    ))(input)
+}
+
+fn include_keyword(input: &str) -> IResult<&str, &str> {
+    alt((
+        tag("include"),
+        tag("Include"),
+        tag("INCLUDE"),
     ))(input)
 }
 
@@ -66,6 +116,14 @@ fn func_keyword(input: &str) -> IResult<&str, &str> {
         tag("fn"),
         tag("Fn"),
         tag("FN"),
+    ))(input)
+}
+
+fn graphical_keyword(input: &str) -> IResult<&str, &str> {
+    alt((
+        tag("graphical"),
+        tag("Graphical"),
+        tag("GRAPHICAL"),
     ))(input)
 }
 
@@ -171,6 +229,21 @@ fn using(input: &str) -> IResult<&str, Using> {
     )(input)
 }
 
+fn include(input: &str) -> IResult<&str, Include> {
+    map(
+        tuple((
+            char('!'),
+            include_keyword,
+            multispace0,
+            file_path,
+            char(';'),
+        )),
+        |(_,_,_,path,_)| Include {
+            path,
+        },
+    )(input)
+}
+
 fn id_list(input: &str) -> IResult<&str, Vec<String>> {
     separated_list0(value_separator, identifier)(input)
 }
@@ -260,8 +333,7 @@ fn func_module(input: &str) -> IResult<&str, Module> {
             delimited(
                 char('{'),
                 many0(delimited(separator, gate, separator)),
-                char('}'),
-            ),
+                char('}')),
         )),
         |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
             func: true,
@@ -332,8 +404,7 @@ fn test(input: &str) -> IResult<&str, Test> {
             delimited(
                 char('{'),
                 many0(delimited(separator, test_pattern, separator)),
-                char('}'),
-            ),
+                char('}')),
         )),
         |(_, _, name, _, _, _, type_sig, _, patterns)| Test {
             name,
@@ -343,12 +414,130 @@ fn test(input: &str) -> IResult<&str, Test> {
     )(input)
 }
 
+fn img_size_auto(input: &str) -> IResult<&str, ImgSize> {
+    map(
+        tag("auto"),
+        |_| ImgSize::Auto(()),
+    )(input)
+}
+
+fn img_size_number(input: &str) -> IResult<&str, ImgSize> {
+    map(
+        tuple((
+            number,
+            char('x'),
+            number,
+        )),
+        |(width,_,height)| ImgSize::Size {
+            width,
+            height,
+        },
+    )(input)
+}
+
+/// for img_color parser
+fn hex_to_u8(a: char, b: char) -> Option<u8> {
+    match (a.to_digit(16), b.to_digit(16)) {
+        (Some(x), Some(y)) if x <= 15 && y <= 15 => Some(TryFrom::try_from(x * 16 + y).unwrap()),
+        _ => None
+    }
+}
+
+fn img_color(input: &str) -> IResult<&str, (u8,u8,u8)> {
+    map(
+        tuple((
+            char('#'),
+            hex_digit,
+            hex_digit,
+            hex_digit,
+            hex_digit,
+            hex_digit,
+            hex_digit,
+        )),
+        |(_,a,b,c,d,e,f)| (hex_to_u8(a,b).unwrap(),hex_to_u8(c,d).unwrap(),hex_to_u8(e,f).unwrap())
+    )(input)
+}
+
+fn graphical(input: &str) -> IResult<&str, Graphical> {
+    map(
+        tuple((
+            graphical_keyword,
+            multispace0,
+            identifier,
+            multispace0,
+            char(':'),
+            multispace0,
+            alt((img_size_auto,img_size_number)),
+            multispace0,
+            delimited(
+                char('{'),
+                many0(delimited(separator, pixel, separator)),
+                char('}'),
+            ),
+        )),
+        |(_, _,name,_,_,_,size, _, pixels)| Graphical {
+            name,
+            size,
+            pixels,
+        },
+    )(input)
+}
+
+fn img_io_name(input: &str) -> IResult<&str, IoIndex> {
+    map(
+        tuple((
+            alt((char('i'),char('o'))),
+            number,
+        )),
+        |(io_type,index)| IoIndex {
+            io_type: match io_type {
+                'i' => "input".to_string(),
+                _ => "output".to_string(),
+            },
+            index,
+        }
+    )(input)
+}
+
+
+fn pixel(input: &str) -> IResult<&str, Pixel> {
+    map(
+        tuple((
+            number,
+            value_separator,
+            number,
+            multispace0,
+            gate_separator,
+            multispace0,
+            img_io_name,
+            multispace0,
+            opt(tuple((left_arrow, multispace0))),
+            img_color,
+            value_separator,
+            img_color,
+            char(';'),
+        )),
+        |(x,_,y,_,_,_,io_index,_,_,color_on,_,color_off,_)| Pixel {
+            coord: (x,y),
+            io_index,
+            color: PixelColor {
+                on: color_on,
+                off: color_off,
+            }
+        },
+    )(input)
+}
+
+
 fn component(input: &str) -> IResult<&str, Component> {
     alt((
         map(using, Component::Using),
+        // map(import, Component::Import),
         map(module, Component::Module),
+        map(graphical, Component::Graphical),
         map(func_module, Component::Module),
         map(test, Component::Test),
+        map(include, Component::Include),
     ))(input)
 }
 

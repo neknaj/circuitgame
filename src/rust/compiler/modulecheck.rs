@@ -18,7 +18,13 @@ pub fn collect_modules(ast: &File) -> (Vec<String>,Vec<String>,Vec<ModuleType>) 
     // ASTの中で定義されたモジュールを集める
     for component in &ast.components {
         match component {
-            Component::Module(module)=>{
+            Component::Include(include) => {
+                println!("Include: {}", include.path);
+            },
+            // Component::Graphical(include) => {
+            //     println!("Graphical: {:#?}", include);
+            // },
+            Component::Module(module) => {
                 modules.push(
                     ModuleType {
                         name: String::from(module.name.clone()),
@@ -27,8 +33,7 @@ pub fn collect_modules(ast: &File) -> (Vec<String>,Vec<String>,Vec<ModuleType>) 
                 );
                 if module.func {
                     func_modules.push(module.name.clone());
-                }
-                else {
+                } else {
                     non_func_modules.push(module.name.clone());
                 }
             },

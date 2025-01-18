@@ -18,7 +18,14 @@ pub struct File {
 pub enum Component {
     Using(Using),
     Module(Module),
+    Graphical(Graphical),
     Test(Test),
+    Include(Include),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Include {
+    pub path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -35,6 +42,21 @@ pub struct Module {
     pub gates: Vec<Gate>,
 }
 
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type")]
+pub enum ImgSize {
+    Size {width: u32, height: u32},
+    Auto(()),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Graphical {
+    pub name: String,
+    pub size: ImgSize,
+    pub pixels: Vec<Pixel>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Test {
     pub name: String,
@@ -47,6 +69,25 @@ pub struct Gate {
     pub outputs: Vec<String>,
     pub module_name: String,
     pub inputs: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Pixel {
+    pub coord: (u32,u32),
+    pub io_index: IoIndex,
+    pub color: PixelColor,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PixelColor {
+    pub on: (u8,u8,u8),
+    pub off: (u8,u8,u8),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct IoIndex {
+    pub io_type: String,
+    pub index: u32,
 }
 
 #[derive(Debug, Clone, Serialize)]

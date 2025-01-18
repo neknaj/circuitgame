@@ -1,7 +1,7 @@
 <file> := <components>
 
 <components> := <component> <components> | ε
-<component> := <using> | <import> | <module> | <funcModule> | <graphical> | <test> | <include>
+<component> := <using> | <import> | <module> | <funcModule> | <graphical> | <test>
 
 <mName> := /([0-9a-zA-Z]|_)+/
 <mId> := /([0-9a-zA-Z]|_)+/
@@ -26,12 +26,9 @@
 <false> := "f" | "F" | "l" | "L" | "0"
 <gate_separator> := ":" | "=" | ":=" | "::="
 
-<include_keyword> := "include" | "Include" | "INCLUDE"
-<include> := "!" <include_keyword> <fileName> ";"
-
 <using> := <using_keyword> "nor" ":" "2" <rArrow> "1" ";"
 <import> := <import_keyword> "{" <importModules> "}" <from_keyword> <fileName> ";"
-<module> := <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
+<module> := <export_keyword>? <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
 <funcModule> := <func_module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
 <test> := <test_keyword> <mName> ":" <mType> "{" <testPatterns> "}"
 
@@ -51,14 +48,14 @@
 <imgSize> := "auto" | /[0-9]+/ "x"? /[0-9]+/
 <coord> := /[0-9]+/ /[0-9]+/
 <color> := "#" /[0-9]{6}/
-<ioIndex> := "i" /[0-9]+/ | "o" /[0-9]+/
-<pixel> := <coord> <gate_separator> <ioIndex> <lArrow>? <color> <color> ";"
+<ioName> := "i" /[0-9]+/ | "o" /[0-9]+/
+<pixel> := <coord> <gate_separator> <ioName> <lArrow>? <color> <color> ";"
 <pixels> := <pixel> <pixels> | ε
 
 
 # 以下は、色んな所に良い感じに入れられるが、BNFが読みにくくなるので、上記の文法からは消し去ってある
 
-<LineComment> := ("//") /[^\r\n]/ ( "\n" | "\r\n" )
+<LineComment> := ("//" | "#") /[^\r\n]/ ( "\n" | "\r\n" )
 
 # 比較的どこにでも入れられる
 <Space> := " " | "\t" | "\n" | "\r"

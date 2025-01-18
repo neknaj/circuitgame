@@ -16,6 +16,32 @@ export interface Module {
     gates: Gate[];
 }
 
+export interface Graphical {
+    name: string;
+    size: ImgSize;
+    pixels: Pixel[];
+}
+
+export type ImgSize =
+    | { type: "Size" } & { width: number, height: number }
+    | { type: "Auto" }
+
+export interface Pixel {
+    coord: [number,number],
+    io_index: IoIndex,
+    color: PixelColor,
+}
+
+export interface IoIndex {
+    io_type: "input" | "output",
+    index: number,
+}
+
+export interface PixelColor {
+    on: [number,number,number],
+    off: [number,number,number],
+}
+
 export interface Using {
     type_sig: MType;
 }
@@ -32,6 +58,7 @@ export interface Test {
 export type Component =
     | { type: "Using" } & Using
     | { type: "Module" } & Module
+    | { type: "Graphical" } & Graphical
     | { type: "Test" } & Test;
 
 export interface File {
