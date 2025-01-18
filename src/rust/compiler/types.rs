@@ -46,7 +46,7 @@ pub struct Module {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
 pub enum ImgSize {
-    Size((u32,u32)),
+    Size {width: u32, height: u32},
     Auto(()),
 }
 

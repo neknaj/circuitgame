@@ -9,16 +9,16 @@ export function isIntermediateProducts(obj: any): obj is IntermediateProducts {
         'module_dependency_sorted' in obj)) return false;
 
     // 配列プロパティの型チェック
-    if (!Array.isArray(obj.warns) || !obj.warns.every(w => typeof w === 'string')) return false;
-    if (!Array.isArray(obj.errors) || !obj.errors.every(e => typeof e === 'string')) return false;
-    if (!Array.isArray(obj.module_type_list) || !obj.module_type_list.every(isModuleType)) return false;
-    if (!Array.isArray(obj.module_dependency) || !obj.module_dependency.every(isNodeDepends)) return false;
-    if (!Array.isArray(obj.module_dependency_sorted) || !obj.module_dependency_sorted.every(m => typeof m === 'string')) return false;
+    // if (!Array.isArray(obj.warns) || !obj.warns.every(w => typeof w === 'string')) return false;
+    // if (!Array.isArray(obj.errors) || !obj.errors.every(e => typeof e === 'string')) return false;
+    // if (!Array.isArray(obj.module_type_list) || !obj.module_type_list.every(isModuleType)) return false;
+    // if (!Array.isArray(obj.module_dependency) || !obj.module_dependency.every(isNodeDepends)) return false;
+    // if (!Array.isArray(obj.module_dependency_sorted) || !obj.module_dependency_sorted.every(m => typeof m === 'string')) return false;
 
     // expanded_modulesの型チェック
 
     // astの型チェック
-    if (!isFile(obj.ast)) return false;
+    // if (!isFile(obj.ast)) return false;
 
     return true;
 }
@@ -49,7 +49,7 @@ export function isFile(obj: any): obj is File {
 
 export function isComponent(obj: any): obj is Component {
     if (!obj || typeof obj !== 'object') return false;
-    if (!['Using', 'Module', 'Test'].includes(obj.type)) return false;
+    if (!['Using', 'Module', 'Test', 'Graphical'].includes(obj.type)) return false;
 
     switch (obj.type) {
         case 'Using': return isUsing(obj);

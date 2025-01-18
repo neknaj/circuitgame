@@ -428,7 +428,10 @@ fn img_size_number(input: &str) -> IResult<&str, ImgSize> {
             char('x'),
             number,
         )),
-        |(width,_,height)| ImgSize::Size((width,height)),
+        |(width,_,height)| ImgSize::Size {
+            width,
+            height,
+        },
     )(input)
 }
 

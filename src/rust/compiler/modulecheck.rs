@@ -21,6 +21,9 @@ pub fn collect_modules(ast: &File) -> (Vec<String>,Vec<String>,Vec<ModuleType>) 
             Component::Include(include) => {
                 println!("Include: {}", include.path);
             },
+            // Component::Graphical(include) => {
+            //     println!("Graphical: {:#?}", include);
+            // },
             Component::Module(module) => {
                 modules.push(
                     ModuleType {

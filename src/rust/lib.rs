@@ -39,7 +39,7 @@ pub fn export_compiler_intermediate_products(input: &str) -> String {
     let result = compiler::intermediate_products(input);
     match serde_json::to_string_pretty(&result) {
         Ok(str) => str,
-        Err(_) => return format!("serializing error"),
+        Err(v) => return format!("serializing error {}",v),
     }
 }
 
@@ -52,7 +52,7 @@ pub fn export_test(input: &str) -> String {
     let test_result = test::test(result);
     match serde_json::to_string_pretty(&test_result) {
         Ok(str) => str,
-        Err(_) => return format!("serializing error"),
+        Err(v) => return format!("serializing error {}",v),
     }
 }
 

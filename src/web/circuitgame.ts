@@ -3,7 +3,15 @@ import { IntermediateProducts, TestProducts } from './types.js';
 import { isIntermediateProducts, isTestProducts } from './typeGuards.js';
 
 function CompilerIntermediateProducts(code: string): IntermediateProducts {
-    let result_from_rust: any = JSON.parse(CompilerIntermediateProducts_raw(code));
+    let result_from_rust: any;
+    try {
+        result_from_rust = JSON.parse(CompilerIntermediateProducts_raw(code))
+    }
+    catch (e) {
+        console.error(e);
+        console.log(CompilerIntermediateProducts_raw(code));
+    }
+    console.log(result_from_rust.ast.components)
     // 型チェックと変換を行う
     if (!isIntermediateProducts(result_from_rust)) {
         throw new Error('Rustからの返り値が期待する形式と一致しません');
