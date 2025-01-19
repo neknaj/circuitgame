@@ -26,10 +26,10 @@
 <false> := "f" | "F" | "l" | "L" | "0"
 <gate_separator> := ":" | "=" | ":=" | "::="
 
-<using> := <using_keyword> "nor" ":" "2" <rArrow> "1" ";"
+<using> := <using_keyword> <mName> ":" <mType> ";"
 <import> := <import_keyword> "{" <importModules> "}" <from_keyword> <fileName> ";"
 <module> := <export_keyword>? <module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
-<funcModule> := <func_module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
+<funcModule> := <export_keyword>? <func_module_keyword> <mName> <mIO> <rArrow> <mIO> "{" <gates> "}"
 <test> := <test_keyword> <mName> ":" <mType> "{" <testPatterns> "}"
 
 <importModule> := <mId>
@@ -48,18 +48,19 @@
 <imgSize> := "auto" | /[0-9]+/ "x"? /[0-9]+/
 <coord> := /[0-9]+/ /[0-9]+/
 <color> := "#" /[0-9]{6}/
-<ioName> := "i" /[0-9]+/ | "o" /[0-9]+/
-<pixel> := <coord> <gate_separator> <ioName> <lArrow>? <color> <color> ";"
+<ioIndex> := ("i"|"I") /[0-9]+/ | ("o"|"O") /[0-9]+/
+<pixel> := <coord> <gate_separator> <ioIndex> <lArrow>? <color> <color> ";"
 <pixels> := <pixel> <pixels> | ε
 
 
-# 以下は、色んな所に良い感じに入れられるが、BNFが読みにくくなるので、上記の文法からは消し去ってある
+# 以下は、色んな所に入れられるが、BNFが読みにくくなるので、上記の文法からは消し去ってある
 
-<LineComment> := ("//" | "#") /[^\r\n]/ ( "\n" | "\r\n" )
+# コメント, 空白 (無視される)
 
-# 比較的どこにでも入れられる
-<Space> := " " | "\t" | "\n" | "\r"
+<LineComment> := ("//") /[^\r\n]/ ( "\n" | "\r\n" )
+
+<Space> := " " | "," | "\t" | "\n" | "\r"
 # <file>直下と、<module>,<using>の{}直前と中で使える, コメントを許す
 <Separator> := ( <Space>+ | <LineComment> )*
-# <mId>と<bool>の区切りに使える, コンマ区切りを許す
-<ValueSeparator> := <Space>+ | <Space>* "," <Space>*
+# <mId>と<bool>の区切りに使える, コメントを許さない
+<ValueSeparator> := <Space>*
