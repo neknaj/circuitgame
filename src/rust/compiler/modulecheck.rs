@@ -73,26 +73,26 @@ pub fn check_module_gates(ast: &File, module_types: &Vec<ModuleType>) -> Result<
         let mut id_names = std::collections::HashSet::new();
         for input in &module.inputs {
             if !id_names.insert(input) {
-                errors.push(format!("Defined id Duplicated: Input {}",input));
+                errors.push(format!("Defined id Duplicated: Input {} in {}",input,module.name));
             }
         }
         for gates in &module.gates {
             for output in &gates.outputs {
                 if !id_names.insert(output) {
-                    errors.push(format!("Defined id Duplicated: Gate-Out {}",output));
+                    errors.push(format!("Defined id Duplicated: Gate-Out {} in {}",output,module.name));
                 }
             }
         }
         // 宣言されていない名前が使われていないかの確認
         for output in &module.outputs {
             if !id_names.contains(output) {
-                errors.push(format!("Undefined id used: Output {}",output));
+                errors.push(format!("Undefined id used: Output {} in {}",output,module.name));
             }
         }
         for gates in &module.gates {
             for input in &gates.inputs {
                 if !id_names.contains(input) {
-                    errors.push(format!("Undefined id used: Gate-In {}",input));
+                    errors.push(format!("Undefined id used: Gate-In {} in {}",input,module.name));
                 }
             }
         }
@@ -113,7 +113,7 @@ pub fn check_module_gates(ast: &File, module_types: &Vec<ModuleType>) -> Result<
                 }
                 for input in &gates.inputs {
                     if !id_names.contains(input) {
-                        errors.push(format!("In a function module, a value cannot be used before it is declared {}",input));
+                        errors.push(format!("In a function module, a value cannot be used before it is declared: {} in {}",input,module.name));
                     }
                 }
             }
@@ -126,10 +126,10 @@ pub fn check_module_gates(ast: &File, module_types: &Vec<ModuleType>) -> Result<
                 Some(mtype) => { // 使われているモジュールが定義されている場合
                     // moduleのinput,outputの型を確認
                     if gate.inputs.len()!=mtype.input_count||gate.outputs.len()!=mtype.output_count {
-                        errors.push(format!("Used module with unmatched type: {} expected {}->{} but got {}->{}",gate.module_name,mtype.input_count,mtype.output_count,gate.inputs.len(),gate.outputs.len()));
+                        errors.push(format!("Used module with unmatched type: {} expected {}->{} but got {}->{}, in {}",gate.module_name,mtype.input_count,mtype.output_count,gate.inputs.len(),gate.outputs.len(),module.name));
                     }
                 },
-                None => { errors.push(format!("Undefined module used: {}",gate.module_name)); break; },
+                None => { errors.push(format!("Undefined module used: {} in {}",gate.module_name,module.name)); break; },
             }
             // func_moduleのみの処理
             if module.func {
