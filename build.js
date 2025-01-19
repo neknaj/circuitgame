@@ -63,7 +63,7 @@ function copyFiles(files) {
 }
 
 async function getFile(savePath,url) {
-    if (fs.existsSync(savePath)) return false; // 既に存在するならダウンロードしない
+    // if (fs.existsSync(savePath)) return false; // 既に存在するならダウンロードしない
     await new Promise((resolve, reject) => {
         https.get(url, (res) => {
             if (res.statusCode === 200) {
