@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      version: ${{ steps.set_version.outputs.new_version }}
+      version: ${{ steps.set_version.outputs.version }}
 
     steps:
       - name: Checkout code
@@ -70,10 +70,8 @@ jobs:
           
           new_minor=$((minor + 1))
           new_version="v${major}.${new_minor}.0"
-          
           echo "new_version=$new_version" >> $GITHUB_ENV
-          echo "New version: $new_version"
-
+          echo "version=$new_version" >> $GITHUB_OUTPUT
           
   build:
     needs: [auto-release]
@@ -150,6 +148,5 @@ jobs:
           files: |
             target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
           tag_name: ${{ needs.auto-release.outputs.version }}
-      
           releaseName: Release ${{ needs.auto-release.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
