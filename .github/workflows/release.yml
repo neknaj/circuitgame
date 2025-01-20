@@ -60,14 +60,20 @@ jobs:
         id: set_version
         run: |
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          version=${latest_tag#v}
-          major=${version%%.*}
-          minor=${version#*.}
-          minor=${minor%%.*}
+          if [[ "$latest_tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+          else
+            echo "Invalid tag format: $latest_tag" >&2
+            exit 1
+          fi
+          
           new_minor=$((minor + 1))
           new_version="v${major}.${new_minor}.0"
+          
           echo "new_version=$new_version" >> $GITHUB_ENV
-          echo "::set-output name=new_version::$new_version"
+          echo "New version: $new_version"
+
           
   build:
     needs: [auto-release]
