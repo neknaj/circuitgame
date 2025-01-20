@@ -1,6 +1,6 @@
 import init, { Compile, NCG_Test, CompilerIntermediateProducts, IntermediateProducts, Transpiler } from './circuitgame.js';
 import { elm as E, textelm as T } from './cdom.js';
-import VMinit, { tick, updateLogiAnaGraph } from './vm.js';
+import VMinit, { copyIO, tick, updateLogiAnaGraph } from './vm.js';
 
 import ace from "ace-builds/src-noconflict/ace";
 import 'ace-builds/src-noconflict/mode-typescript';
@@ -412,6 +412,7 @@ async function run() {
                         updateLogiAnaGraph();
                     }),
                 ]),
+                E("button",{},[T("copy IO")]).Listen("click", copyIO),
             ]),
         }
     )
