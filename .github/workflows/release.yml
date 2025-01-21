@@ -16,6 +16,7 @@ jobs:
 
     outputs:
       version: ${{ steps.set_version.outputs.version }}
+      skip: ${{ steps.check_release_conditions.outputs.skip }}
 
     steps:
       - name: Checkout code
@@ -49,15 +50,19 @@ jobs:
           time_diff=$((current_time - last_commit_time))
           echo "Time since last commit: $time_diff seconds"
 
+          # デフォルト値の設定
+          echo "skip=false" >> $GITHUB_OUTPUT
+          
+          # 時間差によるスキップ条件のチェック
           if [ $time_diff -lt 21600 ]; then
             echo "6 hours have not passed since the last commit. Skipping release."
-            exit 78
+            echo "skip=true" >> $GITHUB_OUTPUT
           fi
-
+          
           # リリース条件のチェック（前回のリリースと最新コミットの一致）
           if [ "$last_release_commit" = "$latest_commit" ]; then
-            echo "The last release commit matches the latest commit. Skipping release."
-            exit 78
+            echo "No new commits since the latest release. Skipping release."
+            echo "skip=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Get latest version tag
@@ -80,7 +85,7 @@ jobs:
   
   build:
     needs: auto-release
-    if: success()
+    if: needs.auto-release.outputs.skip == 'false'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
