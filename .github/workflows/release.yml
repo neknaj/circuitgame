@@ -51,13 +51,13 @@ jobs:
 
           if [ $time_diff -lt 21600 ]; then
             echo "6 hours have not passed since the last commit. Skipping release."
-            exit 0
+            exit 78
           fi
 
           # リリース条件のチェック（前回のリリースと最新コミットの一致）
-          if [ "${{ env.last_release_commit }}" = "${{ env.latest_commit }}" ]; then
+          if [ "$last_release_commit" = "$latest_commit" ]; then
             echo "The last release commit matches the latest commit. Skipping release."
-            exit 0
+            exit 78
           fi
 
       - name: Get latest version tag
@@ -80,6 +80,7 @@ jobs:
   
   build:
     needs: auto-release
+    if: success()
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
