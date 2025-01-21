@@ -69,7 +69,8 @@ jobs:
             echo "Invalid tag format: $latest_tag" >&2
             exit 1
           fi
-          
+
+          echo $latest_tag $new_version
           new_minor=$((minor + 1))
           new_version="v${major}.${new_minor}.0"
           echo "new_version=$new_version" >> $GITHUB_ENV
