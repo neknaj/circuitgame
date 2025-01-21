@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Get the last release commit
         id: last_release_commit
@@ -70,11 +72,11 @@ jobs:
             exit 1
           fi
 
-          echo $latest_tag $new_version
           new_minor=$((minor + 1))
           new_version="v${major}.${new_minor}.0"
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "version=$new_version" >> $GITHUB_OUTPUT
+          echo $latest_tag $new_version
           
   check-output:
     needs: auto-release
