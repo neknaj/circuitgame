@@ -7,7 +7,9 @@ permissions:
 on:
   schedule:
     - cron: "0 * * * *" # 毎時0分に実行
-
+  push:
+    paths:
+      -  '.github/workflows/release.yml'
 jobs:
   auto-release:
     runs-on: ubuntu-latest
@@ -36,25 +38,25 @@ jobs:
         run: |
           echo "timestamp=$(git log -1 --format=%ct)" >> $GITHUB_ENV
 
-      - name: Check release conditions
-        id: check_release_conditions
-        run: |
-          # 6時間経過のチェック
-          current_time=$(date +%s)
-          last_commit_time=${{ env.timestamp }}
-          time_diff=$((current_time - last_commit_time))
-          echo "Time since last commit: $time_diff seconds"
+      # - name: Check release conditions
+      #   id: check_release_conditions
+      #   run: |
+      #     # 6時間経過のチェック
+      #     current_time=$(date +%s)
+      #     last_commit_time=${{ env.timestamp }}
+      #     time_diff=$((current_time - last_commit_time))
+      #     echo "Time since last commit: $time_diff seconds"
 
-          if [ $time_diff -lt 21600 ]; then
-            echo "6 hours have not passed since the last commit. Skipping release."
-            exit 0
-          fi
+      #     if [ $time_diff -lt 21600 ]; then
+      #       echo "6 hours have not passed since the last commit. Skipping release."
+      #       exit 0
+      #     fi
 
-          # リリース条件のチェック（前回のリリースと最新コミットの一致）
-          if [ "${{ env.last_release_commit }}" = "${{ env.latest_commit }}" ]; then
-            echo "The last release commit matches the latest commit. Skipping release."
-            exit 0
-          fi
+      #     # リリース条件のチェック（前回のリリースと最新コミットの一致）
+      #     if [ "${{ env.last_release_commit }}" = "${{ env.latest_commit }}" ]; then
+      #       echo "The last release commit matches the latest commit. Skipping release."
+      #       exit 0
+      #     fi
 
       - name: Get latest version tag
         id: set_version
@@ -73,8 +75,14 @@ jobs:
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "version=$new_version" >> $GITHUB_OUTPUT
           
+  check-output:
+    needs: auto-release
+    runs-on: ubuntu-latest
+    steps: 
+      - run: echo ${{needs.auto-release.outputs.version}}
+  
   build:
-    needs: [auto-release]
+    needs: auto-release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
