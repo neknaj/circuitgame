@@ -116,6 +116,16 @@ export function tick() {
     graphicalIO_update();
 }
 
+// 現在の入出力をコピー
+export function copyIO() {
+    const vm = document.querySelector("#vm");
+    if (!vm) { return; }
+    const inputs = Array.from(vm.querySelectorAll(".input input")).map(x=> (x as HTMLInputElement).checked);
+    const outputs = Array.from(vm.querySelectorAll(".output input")).map(x=>(x as HTMLInputElement).checked);
+    const text = `${inputs.map(x=>x?"t":"f").join(" ")} -> ${outputs.map(x=>x?"t":"f").join(" ")};`;
+    navigator.clipboard.writeText(text).catch(err => {console.error('コピーに失敗しました: ' + err);});
+}
+
 export function updateLogiAnaGraph() {
     const elm = document.querySelector("#graph2");
     const bound = elm.getBoundingClientRect();

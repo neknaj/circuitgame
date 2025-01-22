@@ -7,17 +7,22 @@ permissions:
 on:
   schedule:
     - cron: "0 * * * *" # 毎時0分に実行
-
+  push:
+    paths:
+      -  '.github/workflows/release.yml'
 jobs:
   auto-release:
     runs-on: ubuntu-latest
 
     outputs:
-      version: ${{ steps.set_version.outputs.new_version }}
+      version: ${{ steps.set_version.outputs.version }}
+      skip: ${{ steps.check_release_conditions.outputs.skip }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Get the last release commit
         id: last_release_commit
@@ -45,32 +50,42 @@ jobs:
           time_diff=$((current_time - last_commit_time))
           echo "Time since last commit: $time_diff seconds"
 
+          # デフォルト値の設定
+          echo "skip=false" >> $GITHUB_OUTPUT
+          
+          # 時間差によるスキップ条件のチェック
           if [ $time_diff -lt 21600 ]; then
             echo "6 hours have not passed since the last commit. Skipping release."
-            exit 0
+            echo "skip=true" >> $GITHUB_OUTPUT
           fi
-
+          
           # リリース条件のチェック（前回のリリースと最新コミットの一致）
-          if [ "${{ env.last_release_commit }}" = "${{ env.latest_commit }}" ]; then
-            echo "The last release commit matches the latest commit. Skipping release."
-            exit 0
+          if [ "$last_release_commit" = "$latest_commit" ]; then
+            echo "No new commits since the latest release. Skipping release."
+            echo "skip=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Get latest version tag
         id: set_version
         run: |
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          version=${latest_tag#v}
-          major=${version%%.*}
-          minor=${version#*.}
-          minor=${minor%%.*}
+          if [[ "$latest_tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+          else
+            echo "Invalid tag format: $latest_tag" >&2
+            exit 1
+          fi
+
           new_minor=$((minor + 1))
           new_version="v${major}.${new_minor}.0"
           echo "new_version=$new_version" >> $GITHUB_ENV
-          echo "::set-output name=new_version::$new_version"
-          
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+          echo $latest_tag $new_version
+  
   build:
-    needs: [auto-release]
+    needs: auto-release
+    if: needs.auto-release.outputs.skip == 'false'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -144,6 +159,5 @@ jobs:
           files: |
             target/${{ matrix.target }}/release/${{ env.PROJECT_NAME }}-${{ github.ref_name }}-${{ matrix.target }}${{ matrix.extension }}
           tag_name: ${{ needs.auto-release.outputs.version }}
-      
           releaseName: Release ${{ needs.auto-release.outputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
