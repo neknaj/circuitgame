@@ -40,7 +40,6 @@ func name (input1 input2)->(output1) {
 Key points:
 - Parentheses are required even with no inputs/outputs
 - Each line inside must be a gate definition
-- No empty lines or statements other than gates
 - All identifiers must be simple names (no arrays or paths)
 
 ### Gate Definition Syntax
@@ -60,7 +59,7 @@ Key points:
 - No expressions or calculations
 - Names must be single identifiers
 - Number of inputs/outputs must match the module definition
-- Cannot skip the arrow `<-`
+- The arrow `<-` can be omitted, but its inclusion is recommended.
 - Must end with semicolon
 - Spaces around separators are optional
 
@@ -74,14 +73,8 @@ outputs[0]: nor <- inputs[0] inputs[1];
 // No member access
 module.output: nor <- a.input b.input;
 
-// No numeric indices
-out0: nor <- in0 in1;  // Use proper names instead
-
 // No nested definitions
 a: (nor <- b c): nor <- d e;
-
-// No multiple gates per line
-a: nor <- b c; d: nor <- e f;
 
 // No gate parameters
 mygate<T>: nor <- in1 in2;
@@ -145,7 +138,7 @@ func invalid (x)->(out) {
 
 Non-function modules are more flexible:
 - Can use values before they are defined
-- Can have circular dependencies
+- They can participate in circular dependencies, such as those found in feedback loops.
 - Can call both function and non-function modules
 - Suitable for sequential circuits and feedback loops
 
@@ -201,16 +194,7 @@ func correct (x)->(y) {
    bit0 bit1 bit2 bit3: register <- data0 data1 data2 data3;
    ```
 
-2. Trying to use numeric suffixes:
-   ```ncg
-   // WRONG:
-   out0: nor <- in0 in1;
-   
-   // Correct:
-   out_a: nor <- in_first in_second;
-   ```
-
-3. Trying to use nested structures:
+2. Trying to use nested structures:
    ```ncg
    // WRONG:
    alu.add.result: adder <- a.value b.value;
@@ -219,7 +203,7 @@ func correct (x)->(y) {
    add_result: adder <- a_value b_value;
    ```
 
-4. Trying to use expressions:
+3. Trying to use expressions:
    ```ncg
    // WRONG:
    sum: adder <- (a + b) c;
@@ -429,7 +413,7 @@ The compiler performs several validation checks and may produce the following er
    Error: Used module with unmatched type: module_name expected 2->1 but got 3->1, in parent_module
    ```
    - Number of inputs/outputs doesn't match the module definition
-   - Check the module's type signature
+   - Verify the number of inputs and outputs for the module 
    - Make sure you're providing the correct number of connections
 
 ### Dependency Errors
@@ -440,7 +424,8 @@ The compiler performs several validation checks and may produce the following er
    ```
    - Modules have circular dependencies
    - Identify the dependency cycle
-   - Break the cycle or use a non-function module
+   <!-- - Break the cycle or use a non-function module -->
+   <!-- わからないので任せた for Bem-->
 
 ### Warning Messages
 
@@ -460,6 +445,22 @@ The compiler performs several validation checks and may produce the following er
    - This is allowed but might indicate design issues
    - Consider if this is intentional
 
+3. **Module has no Test**
+   ```
+   Warning: test No test provided for module: nor
+   ```
+   - The nor module is defined, but it is not used within any other defined module or tested in the test section.
+   - Write test for the `nor` module.
+
+4. **Module Test Failed**
+   ```
+   Warning: test Test failed: module buf input [true], expected [true] but got [false]
+   ```
+   - The test you wrote for the buf module didn't pass. Specifically, when you gave the buf module a true input, you expected it to output true, but it actually output false.
+   - Either the buf module is not working correctly and needs to be fixed, or
+   - You made a mistake when you wrote the test and should correct the test pattern.
+   - The two above action must be performed until the test passed.
+
 ### Best Practices for Error Prevention
 
 1. **Plan Module Structure**
@@ -470,7 +471,7 @@ The compiler performs several validation checks and may produce the following er
 2. **Naming Conventions**
    - Use descriptive, unique names for modules
    - Use consistent naming patterns for wires
-   - Avoid numeric suffixes in identifiers
+   - Ensure numeric suffixes are sequential and represent a logical ordering
 
 3. **Type Checking**
    - Verify input/output counts before implementing
@@ -480,4 +481,4 @@ The compiler performs several validation checks and may produce the following er
 4. **Dependency Management**
    - Keep dependencies unidirectional when possible
    - Use function modules for pure combinational logic
-   - Reserve non-function modules for sequential circuits
+   - Designate non-function modules for sequential circuits
