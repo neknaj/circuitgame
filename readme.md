@@ -1,15 +1,20 @@
-# Circuit Game
+# Neknaj Circuit Game
 
 ![image](https://img.shields.io/badge/-TypeScript-103040.svg?logo=typescript&style=popout)
 ![image](https://img.shields.io/badge/-Rust-403540.svg?logo=rust&style=popout)
 
-Circuit Game is a simulation tool for designing and testing digital circuits. It allows users to define modules, gates, and tests for their circuits and provides tools for compiling and testing these designs.
+Neknaj Circuit Game is a simulation tool for designing and testing digital circuits. It allows users to define modules, gates, and tests for their circuits and provides tools for compiling and testing these designs.
+
+[Web Page](https://neknaj.com/circuitgame/README)  
+[Web Playground (CircuitGame Web Tool)](https://neknaj.github.io/circuitgame/)  
 
 # Key Features
 - DSL for describing logic circuits
 - Transpile to TypeScript
 - Development using both CLI and Web
 
+# Document
+[Detailed explanation of the language specification for LLM](https://raw.githubusercontent.com/neknaj/circuitgame/refs/heads/main/spec/explanation4llm.md), [not raw](https://github.com/neknaj/circuitgame/blob/main/spec/explanation4llm.md)
 
 # Installation
 
