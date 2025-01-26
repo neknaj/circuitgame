@@ -1,6 +1,12 @@
-# Circuit Description Language Grammar
+# Neknaj Circuit Game / Neknaj Circuit Game Language
 
-This document provides a precise specification of the circuit description language syntax to avoid common misunderstandings.
+This document provides a precise specification of Neknaj Circuit Game Language syntax to avoid common misunderstandings.
+
+## Neknaj Circuit Game
+
+[Web Page](https://neknaj.com/circuitgame/README)  
+[Github Repository](https://github.com/neknaj/circuitgame)  
+[Web Playground (CircuitGame Web Tool)](https://neknaj.github.io/circuitgame/)  
 
 ## Important Syntax Limitations
 
@@ -346,6 +352,85 @@ test half_adder:2->2 {
 }
 ```
 
+## Comments
+
+### Line Comments
+
+The language supports single-line comments using double forward slashes:
+```ncg
+// This is a comment
+```
+
+Key points about comments:
+- Comments start with `//` and continue to the end of the line
+- Comments are completely ignored by the compiler
+- Empty lines and whitespace are also ignored
+- Block comments (`/* ... */`) are NOT supported
+- Hash (`#`) comments are NOT supported
+
+### Comment Placement
+
+Comments can be placed in the following locations:
+
+1. At the file level:
+   ```ncg
+   // File description
+   using nor:2->1;
+   
+   // Module definitions below
+   module example...
+   ```
+
+2. Between module/test definitions:
+   ```ncg
+   module not (x)->(y) {
+       y: nor <- x x;
+   }
+   
+   // AND gate implementation
+   module and (x y)->(z) {
+       z: nor <- x y;
+   }
+   ```
+
+3. Inside module/test bodies:
+   ```ncg
+   module full_adder (a b cin)->(sum cout) {
+       // First compute partial sum
+       s1 c1: half_adder <- a b;
+       
+       // Then add carry in
+       s2 c2: half_adder <- s1 cin;
+       
+       // Combine carries
+       cout: or <- c1 c2;
+       sum: buf <- s2;
+   }
+   ```
+
+4. At the end of lines:
+   ```ncg
+   module example (in)->(out) {
+       a: not <- in;    // Invert input
+       out: buf <- a;   // Buffer the result
+   }
+   ```
+
+### What's NOT Supported
+
+❌ These comment styles are NOT supported:
+```ncg
+/* Block comments using slash-star are not supported */
+
+# Hash comments are not supported
+
+/// Documentation comments are not special
+//! Module documentation is not special
+
+--  Different comment markers are not supported
+''' Python-style comments are not supported
+```
+
 ## Error Messages and Troubleshooting
 
 The compiler performs several validation checks and may produce the following errors:
@@ -424,8 +509,7 @@ The compiler performs several validation checks and may produce the following er
    ```
    - Modules have circular dependencies
    - Identify the dependency cycle
-   <!-- - Break the cycle or use a non-function module -->
-   <!-- わからないので任せた for Bem-->
+   - Break the cycle
 
 ### Warning Messages
 
