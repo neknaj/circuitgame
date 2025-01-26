@@ -244,6 +244,31 @@ test module_name:inputs->outputs {
 }
 ```
 
+Important restrictions:
+- Tests can ONLY be written for function modules (`func`)
+- Tests CANNOT be written for non-function modules (`module`)
+- This is because non-function modules may contain feedback loops and state, making their behavior time-dependent
+
+Example of what's allowed and what's not:
+```ncg
+// ALLOWED: Testing a function module
+func and (x y)->(z) {
+    // ...implementation...
+}
+test and:2->1 {
+    t t -> t;
+    t f -> f;
+}
+
+// NOT ALLOWED: Cannot test non-function modules
+module sr_latch (s r)->(q nq) {
+    // ...implementation...
+}
+test sr_latch:2->2 {  // ERROR: Cannot test non-function modules
+    t f -> t f;
+}
+```
+
 Where:
 - `t`, `T`, `1`, `h`, `H` represent true
 - `f`, `F`, `0`, `l`, `L` represent false
