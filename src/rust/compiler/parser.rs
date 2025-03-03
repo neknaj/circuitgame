@@ -555,7 +555,47 @@ fn file(input: &str) -> IResult<&str, File> {
 pub fn parser(input: &str) -> Result<File, String> {
     match file(input) {
         Ok(("", ast)) => Ok(ast),
-        Ok((remainder, _)) => Err(format!("Remaining: {}", remainder)),
-        Err(e) => Err(format!("{}", e)),
+        Ok((remainder, _)) => {
+            // Find the context of the error
+            let error_pos = input.len() - remainder.len();
+            let start = input[..error_pos].rfind('\n').map(|i| i + 1).unwrap_or(0);
+            let end = remainder.find('\n').map(|i| error_pos + i).unwrap_or(input.len());
+            let line = input[start..end].trim();
+            
+            // Calculate line number
+            let line_number = input[..error_pos].matches('\n').count() + 1;
+            
+            // Create detailed error message
+            let mut error = format!("Parsing error at line {}:\n", line_number);
+            error.push_str(&format!("{}\n", line));
+            // Add pointer to the error position
+            error.push_str(&format!("{}^\n", " ".repeat(error_pos - start)));
+            error.push_str("Unexpected content found. The parser was unable to continue from this point.\n");
+            error.push_str("Common causes:\n");
+            error.push_str("- Missing semicolon at the end of a statement\n");
+            error.push_str("- Invalid syntax or typo in module/gate definition\n");
+            error.push_str("- Unmatched braces or parentheses\n");
+            Err(error)
+        },
+        Err(e) => {
+            let error_desc = match e {
+                nom::Err::Error(e) | nom::Err::Failure(e) => {
+                    // Convert nom error into more user-friendly message
+                    let pos = input.len() - e.input.len();
+                    let start = input[..pos].rfind('\n').map(|i| i + 1).unwrap_or(0);
+                    let end = e.input.find('\n').map(|i| pos + i).unwrap_or(input.len());
+                    let line = input[start..end].trim();
+                    let line_number = input[..pos].matches('\n').count() + 1;
+                    
+                    format!("Syntax error at line {}:\n{}\n{}^\nInvalid syntax found here.\n",
+                        line_number,
+                        line,
+                        " ".repeat(pos - start)
+                    )
+                },
+                nom::Err::Incomplete(_) => "Incomplete input: the file appears to be truncated.".to_string(),
+            };
+            Err(error_desc)
+        },
     }
 }
