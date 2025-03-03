@@ -191,32 +191,44 @@ pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleTy
             warns.push(format!("Module has no dependency: {}", module.name));
         }
     }
-    // 被依存のないノード（依存されていないノード）を全てSに追加
+    // 被依存のないノード（依存されていないノード）を全てSに追加し、ソートして格納
     let mut s: Vec<String> = in_degree
         .iter()
-        .filter(|(_, &count)| count == 0) // 入力辺がないノード
+        .filter(|(_, &count)| count == 0)
         .map(|(node, _)| node.clone())
         .collect();
-    // Sが2つ以上あれば警告
+    s.sort(); // 決定論的な順序にする
+
+    // Sが2つ以上あれば警告（ソート済みなので順序は一定）
     if s.len() > 1 {
         warns.push(format!("Multiple modules are not used by other modules: {}", s.join(", ")));
     }
+    
     let mut l = Vec::new(); // トポロジカル順にソートされたノード
     // トポロジカルソートの実行
     while let Some(n) = s.pop() {
         l.push(n.clone());
         if let Some(deps) = dependency_graph.get(&n) {
-            for m in deps {
+            // 依存先をソートして処理することで順序を一定に
+            let mut sorted_deps: Vec<_> = deps.iter().collect();
+            sorted_deps.sort();
+            
+            for m in sorted_deps {
                 // 辺を削除する
-                *in_degree.entry(m.clone()).or_insert(0) -= 1;
+                *in_degree.get_mut(m).unwrap() -= 1;
 
                 // mが依存関係を持たない場合、Sに追加
                 if in_degree[m] == 0 {
-                    s.push(m.clone());
+                    // 適切な位置に挿入してソート順を維持
+                    match s.binary_search(m) {
+                        Ok(_) => unreachable!(),
+                        Err(pos) => s.insert(pos, m.clone()),
+                    }
                 }
             }
         }
     }
+    
     // 結果リストがモジュール数と一致しない場合、サイクルがある
     if l.len() != modules.len() {
         return Err((
@@ -224,9 +236,6 @@ pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleTy
             warns,
         ));
     }
-    // 結果表示
-    Ok((
-        l,
-        warns,
-    ))
+    
+    Ok((l, warns))
 }
