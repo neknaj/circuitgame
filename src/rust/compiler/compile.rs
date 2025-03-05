@@ -99,9 +99,8 @@ pub fn module_expansion(ast: &File,modules: &Vec<String>) -> Result<HashMap<Stri
                 Some(v) => v.clone(),
                 None => {errors.push(format!("Undefined gate used in output: {}",output));continue;}
             };
-            // outputにinputを直接指定することはできない
             let output_checked = match output_solved {
-                CompiledGateInput::Input(_) => {errors.push(format!("Output cannot be input: {}",output));continue;}
+                CompiledGateInput::Input(v) => v+gate_index,
                 CompiledGateInput::NorGate(v) => v,
             };
             outputs.push(output_checked);
