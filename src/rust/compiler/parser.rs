@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::{char, digit1, multispace0, multispace1, not_line_ending},
-    combinator::{eof, map, map_res, value, recognize, opt},
+    combinator::{eof, map, map_res, opt, recognize, value},
     multi::{many0, separated_list0},
     sequence::{delimited, terminated, tuple},
     IResult,
@@ -301,11 +301,21 @@ fn module(input: &str) -> IResult<&str, Module> {
             multispace0,
             io_list,
             separator,
-            delimited(
-                char('{'),
-                many0(delimited(separator, gate, separator)),
-                char('}'),
-            ),
+            alt((
+                delimited(
+                    char('{'),
+                    many0(delimited(separator, gate, separator)),
+                    char('}'),
+                ),
+                map(
+                    tuple((
+                        char('{'),
+                        separator,
+                        char('}'),
+                    )),
+                    |_| Vec::new()
+                )
+            )),
         )),
         |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
             func: false,
@@ -330,10 +340,21 @@ fn func_module(input: &str) -> IResult<&str, Module> {
             multispace0,
             io_list,
             separator,
-            delimited(
-                char('{'),
-                many0(delimited(separator, gate, separator)),
-                char('}')),
+            alt((
+                delimited(
+                    char('{'),
+                    many0(delimited(separator, gate, separator)),
+                    char('}'),
+                ),
+                map(
+                    tuple((
+                        char('{'),
+                        separator,
+                        char('}'),
+                    )),
+                    |_| Vec::new()
+                )
+            )),
         )),
         |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
             func: true,
@@ -401,10 +422,21 @@ fn test(input: &str) -> IResult<&str, Test> {
             multispace0,
             mtype,
             separator,
-            delimited(
-                char('{'),
-                many0(delimited(separator, test_pattern, separator)),
-                char('}')),
+            alt((
+                delimited(
+                    char('{'),
+                    many0(delimited(separator, test_pattern, separator)),
+                    char('}'),
+                ),
+                map(
+                    tuple((
+                        char('{'),
+                        separator,
+                        char('}'),
+                    )),
+                    |_| Vec::new()
+                )
+            )),
         )),
         |(_, _, name, _, _, _, type_sig, _, patterns)| Test {
             name,
@@ -469,11 +501,21 @@ fn graphical(input: &str) -> IResult<&str, Graphical> {
             multispace0,
             alt((img_size_auto,img_size_number)),
             multispace0,
-            delimited(
-                char('{'),
-                many0(delimited(separator, pixel, separator)),
-                char('}'),
-            ),
+            alt((
+                delimited(
+                    char('{'),
+                    many0(delimited(separator, pixel, separator)),
+                    char('}'),
+                ),
+                map(
+                    tuple((
+                        char('{'),
+                        separator,
+                        char('}'),
+                    )),
+                    |_| Vec::new()
+                )
+            )),
         )),
         |(_, _,name,_,_,_,size, _, pixels)| Graphical {
             name,
@@ -561,10 +603,8 @@ pub fn parser(input: &str) -> Result<File, String> {
             let start = input[..error_pos].rfind('\n').map(|i| i + 1).unwrap_or(0);
             let end = remainder.find('\n').map(|i| error_pos + i).unwrap_or(input.len());
             let line = input[start..end].trim();
-            
             // Calculate line number
             let line_number = input[..error_pos].matches('\n').count() + 1;
-            
             // Create detailed error message
             let mut error = format!("Parsing error at line {}:\n", line_number);
             error.push_str(&format!("{}\n", line));
@@ -586,7 +626,6 @@ pub fn parser(input: &str) -> Result<File, String> {
                     let end = e.input.find('\n').map(|i| pos + i).unwrap_or(input.len());
                     let line = input[start..end].trim();
                     let line_number = input[..pos].matches('\n').count() + 1;
-                    
                     format!("Syntax error at line {}:\n{}\n{}^\nInvalid syntax found here.\n",
                         line_number,
                         line,
