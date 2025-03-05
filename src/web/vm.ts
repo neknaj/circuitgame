@@ -191,19 +191,24 @@ function changeGraphColors() {
         // console.log(wires)
         // console.log(document.querySelectorAll("#graph .edgePaths path"))
         document.querySelectorAll("#graph1 .edgePaths path").forEach((node,i)=>{
-            let active = false;
-            // console.log(wires[i])
-            if ("NorGate" in wires[i]) {
-                active = gate[wires[i].NorGate];
+            try {
+                let active = false;
+                console.log(wires)
+                if ("NorGate" in wires[i]) {
+                    active = gate[wires[i].NorGate];
+                }
+                else {
+                    active = input[wires[i].Input]==1;
+                }
+                if (active) {
+                    node.classList.add("active");
+                }
+                else {
+                    node.classList.remove("active");
+                }
             }
-            else {
-                active = input[wires[i].Input]==1;
-            }
-            if (active) {
-                node.classList.add("active");
-            }
-            else {
-                node.classList.remove("active");
+            catch (e) {
+                console.error(e);
             }
         });
     }
