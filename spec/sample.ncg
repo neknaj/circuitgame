@@ -38,9 +38,7 @@ func false (any)->(false) {
 
 // 基本的なゲート
 
-func buf (x)->(b) {
-    a: not <- x;
-    b: not <- a;
+func buf (x)->(x) {
 }
 
 func not (x)->(a) {
