@@ -314,17 +314,22 @@ fn slice_specifier(input: &str) -> IResult<&str, ArrSlice> {
     // オプションでカンマと第二の数字をパース
     let (input, second_opt) = opt(preceded(char(','), natural_number))(input)?;
 
+    let (input, third_opt) = opt(preceded(char(','), natural_number))(input)?;
+
     // 閉じ括弧のパース: ']' または ')'
     let (input, closing) = alt((char(']'), char(')')))(input)?;
     let upper_inclusive = closing == ']';
 
     // 第二の数字がなければ、最初の数字を使用 (id[x] == id[x,x])
     let second_num = second_opt.unwrap_or(first_num);
+    // 第三の数字がなければ、1を使用
+    let third_num = third_opt.unwrap_or(1);
 
     let slice = ArrSlice {
         all: false,
         start: first_num,
         end: second_num,
+        step: third_num,
         lower_inclusive,
         upper_inclusive,
     };
@@ -348,6 +353,7 @@ fn array_slice(input: &str) -> IResult<&str, PreInputs> {
         all: true,
         start: 0,
         end: 0,
+        step: 1,
         lower_inclusive: true,
         upper_inclusive: true,
     });
@@ -815,7 +821,9 @@ pub fn convert_pre_gates(
                         (lower, upper)
                     };
                     if lower <= upper {
+                        let step = slice.step;
                         (lower..=upper)
+                            .step_by(step as usize)
                             .map(|i| format!("{}:{}", name, i))
                             .collect::<Vec<String>>()
                     } else {
@@ -852,7 +860,9 @@ pub fn convert_pre_gates(
                 (lower, upper)
             };
             if lower <= upper {
+                let step = slice.step;
                 (lower..=upper)
+                    .step_by(step as usize)
                     .map(|i| format!("{}:{}", name, i))
                     .collect::<Vec<String>>()
             } else {

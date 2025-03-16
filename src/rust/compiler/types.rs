@@ -89,6 +89,7 @@ pub struct ArrSlice {
     // all=trueなら以下の内容を無視
     pub start: usize,
     pub end: usize,
+    pub step: usize,
     pub lower_inclusive: bool,
     pub upper_inclusive: bool,
 }
