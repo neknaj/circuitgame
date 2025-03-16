@@ -7,7 +7,7 @@ pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
             return Err(format!("TS transpiler does not support symmetry module: {}",module.name));
         }
         if header {
-            return Err(format!("TS transpiler does not support nom-func module: {}",module.name));
+            return Err(format!("TS transpiler does not support non-func module: {}",module.name));
         }
         else {
             // func_moduleのみ static func で呼び出せる

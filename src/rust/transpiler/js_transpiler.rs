@@ -5,7 +5,7 @@ pub fn transpile(module: Module) -> Result<String,String> {
         return Err(format!("JS transpiler does not support symmetry module: {}",module.name));
     }
     if !module.func {
-        return Err(format!("JS transpiler does not support nom-func module: {}",module.name));
+        return Err(format!("JS transpiler does not support non-func module: {}",module.name));
     }
     else {
         let out_const = format!(
