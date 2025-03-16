@@ -71,6 +71,35 @@ pub struct Gate {
     pub inputs: Vec<String>,
 }
 
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PreOutputs {
+    pub arr_name: String,
+    pub arr_size: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PreInputs {
+    pub arr_name: String,
+    pub arr_slice: ArrSlice,
+}
+#[derive(Debug, Clone, Serialize)]
+pub struct ArrSlice {
+    pub all: bool,
+    // all=trueなら以下の内容を無視
+    pub start: usize,
+    pub end: usize,
+    pub lower_inclusive: bool,
+    pub upper_inclusive: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PreGate {
+    pub outputs: Vec<PreOutputs>,
+    pub module_name: String,
+    pub inputs: Vec<PreInputs>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Pixel {
     pub coord: (u32,u32),

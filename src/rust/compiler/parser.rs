@@ -1,4 +1,5 @@
 use super::types::*;
+use std::collections::HashMap;
 
 use nom::{
     branch::alt,
@@ -6,16 +7,22 @@ use nom::{
     character::complete::{char, digit1, multispace0, multispace1, not_line_ending},
     combinator::{eof, map, map_res, opt, recognize, value},
     multi::{many0, separated_list0},
-    sequence::{delimited, terminated, tuple},
+    sequence::{delimited, terminated, tuple, preceded},
     IResult,
 };
 
 // Parser implementations
+
+
 fn identifier(input: &str) -> IResult<&str, String> {
     map(
         take_while1(|c: char| c.is_alphanumeric() || c == '_'),
         String::from,
     )(input)
+}
+
+fn natural_number(input: &str) -> IResult<&str, usize> {
+    map_res(digit1, |s: &str| s.parse::<usize>())(input)
 }
 
 fn hex_digit(input: &str) -> IResult<&str, char> {
@@ -244,15 +251,27 @@ fn include(input: &str) -> IResult<&str, Include> {
     )(input)
 }
 
-fn id_list(input: &str) -> IResult<&str, Vec<String>> {
-    separated_list0(value_separator, identifier)(input)
+
+fn id_list_output(input: &str) -> IResult<&str, Vec<PreOutputs>> {
+    separated_list0(value_separator, array_declaration)(input)
+}
+fn id_list_input(input: &str) -> IResult<&str, Vec<PreInputs>> {
+    separated_list0(value_separator, array_slice)(input)
 }
 
-fn io_list(input: &str) -> IResult<&str, Vec<String>> {
+fn io_list_input(input: &str) -> IResult<&str, Vec<PreOutputs>> {
     delimited(
         char('('),
-        delimited(multispace0, id_list, multispace0),
-        char(')'),
+        delimited(multispace0, separated_list0(value_separator, array_declaration), multispace0),
+        char(')')
+    )(input)
+}
+
+fn io_list_output(input: &str) -> IResult<&str, Vec<PreInputs>> {
+    delimited(
+        char('('),
+        delimited(multispace0, separated_list0(value_separator, array_slice), multispace0),
+        char(')')
     )(input)
 }
 
@@ -266,21 +285,93 @@ fn gate_separator(input: &str) -> IResult<&str, &str> {
     ))(input)
 }
 
-fn gate(input: &str) -> IResult<&str, Gate> {
+// 配列の宣言をパースします：
+//  - "identifier"        -> これは identifier(1) と解釈されます。
+//  - "identifier(n)"     -> nは自然数。
+fn array_declaration(input: &str) -> IResult<&str, PreOutputs> {
+    let (input, arr_name) = identifier(input)?;
+    let (input, arr_size_) = opt(delimited(char('('), natural_number, char(')')))(input)?;
+    let arr_size = arr_size_.unwrap_or_else(|| 1);
+    Ok((input,PreOutputs{arr_name,arr_size}))
+    // Ok((input,(0..size).map(|i| format!("{}:{}",arr_name,i)).collect()))
+}
+
+// スライス記法をパースします。
+// 記法は以下の通りです:
+//   - [x,y]  : 閉区間 (xもyも含む)
+//   - (x,y)  : 開区間 (xもyも含まない)
+//   - [x,y)  : 左側閉、右側開
+//   - (x,y]  : 左側開、右側閉
+// さらに、1つの数字の場合は id[x] として id[x,x] とみなします。
+fn slice_specifier(input: &str) -> IResult<&str, ArrSlice> {
+    // 開き括弧のパース: '[' または '('
+    let (input, opening) = alt((char('['), char('(')))(input)?;
+    let lower_inclusive = opening == '[';
+
+    // 最初の数字をパース
+    let (input, first_num) = natural_number(input)?;
+
+    // オプションでカンマと第二の数字をパース
+    let (input, second_opt) = opt(preceded(char(','), natural_number))(input)?;
+
+    // 閉じ括弧のパース: ']' または ')'
+    let (input, closing) = alt((char(']'), char(')')))(input)?;
+    let upper_inclusive = closing == ']';
+
+    // 第二の数字がなければ、最初の数字を使用 (id[x] == id[x,x])
+    let second_num = second_opt.unwrap_or(first_num);
+
+    let slice = ArrSlice {
+        all: false,
+        start: first_num,
+        end: second_num,
+        lower_inclusive,
+        upper_inclusive,
+    };
+    Ok((input, slice))
+}
+
+// 配列のスライス記法をパースする関数です。
+// サポートする記法は:
+//   - id[x,y]  (両端含む)
+//   - id(x,y)  (両端含まない)
+//   - id[x,y)  (左端含む、右端含まない)
+//   - id(x,y]  (左端含まない、右端含む)
+//   - id[x]    (省略形: id[x,x])
+//   - id       (スライスが指定されない場合は id[0,0] とみなす)
+fn array_slice(input: &str) -> IResult<&str, PreInputs> {
+    let (input, id_str) = identifier(input)?;
+    // オプションでスライス記法をパース
+    let (input, slice_opt) = opt(slice_specifier)(input)?;
+    // スライス記法がない場合はデフォルトで [0,0] (両端含む) とする
+    let slice = slice_opt.unwrap_or(ArrSlice {
+        all: true,
+        start: 0,
+        end: 0,
+        lower_inclusive: true,
+        upper_inclusive: true,
+    });
+    Ok((input, PreInputs {
+        arr_name: id_str,
+        arr_slice: slice,
+    }))
+}
+
+fn gate(input: &str) -> IResult<&str, PreGate> {
     map(
         tuple((
-            id_list,
+            id_list_output,
             multispace0,
             gate_separator,
             multispace0,
             identifier,
             multispace0,
             opt(tuple((left_arrow, multispace0))),
-            id_list,
+            id_list_input,
             multispace0,
             char(';'),
         )),
-        |(outputs, _, _, _, module_name, _, _, inputs, _, _)| Gate {
+        |(outputs, _, _, _, module_name, _, _, inputs, _, _)| PreGate {
             outputs,
             module_name,
             inputs,
@@ -295,11 +386,11 @@ fn module(input: &str) -> IResult<&str, Module> {
             multispace0,
             identifier,
             multispace0,
-            io_list,
+            io_list_input,
             multispace0,
             right_arrow,
             multispace0,
-            io_list,
+            io_list_output,
             separator,
             alt((
                 delimited(
@@ -317,12 +408,15 @@ fn module(input: &str) -> IResult<&str, Module> {
                 )
             )),
         )),
-        |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
-            func: false,
-            name,
-            inputs,
-            outputs,
-            gates,
+        |(_, _, name, _, inputs_pre, _, _, _, outputs_pre, _, gates_pre)| {
+            let (inputs,outputs,gates) = convert_pre_gates(inputs_pre,outputs_pre,gates_pre);
+            Module {
+                func: false,
+                name,
+                inputs,
+                outputs,
+                gates: gates,
+            }
         },
     )(input)
 }
@@ -334,11 +428,11 @@ fn func_module(input: &str) -> IResult<&str, Module> {
             multispace0,
             identifier,
             multispace0,
-            io_list,
+            io_list_input,
             multispace0,
             right_arrow,
             multispace0,
-            io_list,
+            io_list_output,
             separator,
             alt((
                 delimited(
@@ -356,12 +450,15 @@ fn func_module(input: &str) -> IResult<&str, Module> {
                 )
             )),
         )),
-        |(_, _, name, _, inputs, _, _, _, outputs, _, gates)| Module {
-            func: true,
-            name,
-            inputs,
-            outputs,
-            gates,
+        |(_, _, name, _, inputs_pre, _, _, _, outputs_pre, _, gates_pre)| {
+            let (inputs,outputs,gates) = convert_pre_gates(inputs_pre,outputs_pre,gates_pre);
+            Module {
+                func: true,
+                name,
+                inputs,
+                outputs,
+                gates: gates,
+            }
         },
     )(input)
 }
@@ -637,4 +734,138 @@ pub fn parser(input: &str) -> Result<File, String> {
             Err(error_desc)
         },
     }
+}
+
+/// Convert pre-module and gate data into final representations.
+///
+/// # Parameters
+/// - `module_inputs_pre`: PreOutputs for module-level inputs.
+/// - `module_outputs_pre`: PreInputs for module-level outputs.
+/// - `gates_pre`: PreGate data to be converted into Gate structures.
+///
+/// # Returns
+/// A tuple containing:
+/// - Converted module inputs as Vec<String>
+/// - Converted module outputs as Vec<String>
+/// - Converted gates as Vec<Gate>
+pub fn convert_pre_gates(
+    module_inputs_pre: Vec<PreOutputs>,
+    module_outputs_pre: Vec<PreInputs>,
+    gates_pre: Vec<PreGate>,
+) -> (Vec<String>, Vec<String>, Vec<Gate>) {
+    // Step 1: Build the output_sizes mapping using module_inputs_pre and gates_pre outputs.
+    let mut output_sizes: HashMap<String, usize> = HashMap::new();
+    // Insert sizes from module_inputs_pre.
+    for po in &module_inputs_pre {
+        output_sizes.insert(po.arr_name.clone(), po.arr_size);
+    }
+    // Insert sizes from each gate's outputs.
+    for gate in &gates_pre {
+        for po in &gate.outputs {
+            // Only insert if not already present.
+            output_sizes.entry(po.arr_name.clone()).or_insert(po.arr_size);
+        }
+    }
+    
+    println!("{:#?}",output_sizes);
+
+    // Step 2: Convert module_inputs_pre into a vector of strings.
+    let module_inputs: Vec<String> = module_inputs_pre
+        .into_iter()
+        .flat_map(|po| {
+            (0..po.arr_size)
+                .map(|i| format!("{}:{}", po.arr_name, i))
+                .collect::<Vec<String>>()
+        })
+        .collect();
+
+    // Convert each gate's outputs and inputs.
+    let gates: Vec<Gate> = gates_pre
+        .into_iter()
+        .map(|pre_gate| {
+            // Convert outputs using the output_sizes mapping.
+            let outputs: Vec<String> = pre_gate
+                .outputs
+                .into_iter()
+                .flat_map(|po| {
+                    // Retrieve size from the mapping.
+                    let size = *output_sizes.get(&po.arr_name).unwrap_or(&po.arr_size);
+                    println!("{} a {:#?}",po.arr_name,size);
+                    (0..size)
+                        .map(|i| format!("{}:{}", po.arr_name, i))
+                        .collect::<Vec<String>>()
+                })
+                .collect();
+
+            // Convert inputs using the output_sizes mapping.
+            let inputs: Vec<String> = pre_gate
+                .inputs
+                .into_iter()
+                .flat_map(|pi| {
+                    let name = pi.arr_name;
+                    let slice = pi.arr_slice;
+                    // Determine the effective size from output_sizes.
+                    let size = *output_sizes.get(&name).unwrap_or(&100);
+                    println!("{} b {:#?}",name,slice);
+                    let (lower, upper) = if slice.all {
+                        if size > 0 {
+                            (0, size - 1)
+                        } else {
+                            (0, 0)
+                        }
+                    } else {
+                        let lower = if slice.lower_inclusive { slice.start } else { slice.start + 1 };
+                        let upper = if slice.upper_inclusive { slice.end } else { slice.end - 1 };
+                        (lower, upper)
+                    };
+                    println!("||| {} {} {}",name,lower,upper);
+                    if lower <= upper {
+                        (lower..=upper)
+                            .map(|i| format!("{}:{}", name, i))
+                            .collect::<Vec<String>>()
+                    } else {
+                        vec![]
+                    }
+                })
+                .collect();
+
+            Gate {
+                module_name: pre_gate.module_name,
+                outputs,
+                inputs,
+            }
+        })
+        .collect();
+
+    // Step 3: Convert module_outputs_pre into a vector of strings using output_sizes.
+    let module_outputs: Vec<String> = module_outputs_pre
+        .into_iter()
+        .flat_map(|pi| {
+            let name = pi.arr_name;
+            let slice = pi.arr_slice;
+            // Retrieve size from the mapping.
+            let size = *output_sizes.get(&name).unwrap_or(&0);
+            println!("{} c {:#?}",name,size);
+            let (lower, upper) = if slice.all {
+                if size > 0 {
+                    (0, size - 1)
+                } else {
+                    (0, 0)
+                }
+            } else {
+                let lower = if slice.lower_inclusive { slice.start } else { slice.start + 1 };
+                let upper = if slice.upper_inclusive { slice.end } else { slice.end - 1 };
+                (lower, upper)
+            };
+            if lower <= upper {
+                (lower..=upper)
+                    .map(|i| format!("{}:{}", name, i))
+                    .collect::<Vec<String>>()
+            } else {
+                vec![]
+            }
+        })
+        .collect();
+
+    (module_inputs, module_outputs, gates)
 }
