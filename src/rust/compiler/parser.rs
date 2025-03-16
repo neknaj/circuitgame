@@ -766,8 +766,6 @@ pub fn convert_pre_gates(
             output_sizes.entry(po.arr_name.clone()).or_insert(po.arr_size);
         }
     }
-    
-    println!("{:#?}",output_sizes);
 
     // Step 2: Convert module_inputs_pre into a vector of strings.
     let module_inputs: Vec<String> = module_inputs_pre
@@ -790,7 +788,6 @@ pub fn convert_pre_gates(
                 .flat_map(|po| {
                     // Retrieve size from the mapping.
                     let size = *output_sizes.get(&po.arr_name).unwrap_or(&po.arr_size);
-                    println!("{} a {:#?}",po.arr_name,size);
                     (0..size)
                         .map(|i| format!("{}:{}", po.arr_name, i))
                         .collect::<Vec<String>>()
@@ -806,7 +803,6 @@ pub fn convert_pre_gates(
                     let slice = pi.arr_slice;
                     // Determine the effective size from output_sizes.
                     let size = *output_sizes.get(&name).unwrap_or(&100);
-                    println!("{} b {:#?}",name,slice);
                     let (lower, upper) = if slice.all {
                         if size > 0 {
                             (0, size - 1)
@@ -818,7 +814,6 @@ pub fn convert_pre_gates(
                         let upper = if slice.upper_inclusive { slice.end } else { slice.end - 1 };
                         (lower, upper)
                     };
-                    println!("||| {} {} {}",name,lower,upper);
                     if lower <= upper {
                         (lower..=upper)
                             .map(|i| format!("{}:{}", name, i))
@@ -845,7 +840,6 @@ pub fn convert_pre_gates(
             let slice = pi.arr_slice;
             // Retrieve size from the mapping.
             let size = *output_sizes.get(&name).unwrap_or(&0);
-            println!("{} c {:#?}",name,size);
             let (lower, upper) = if slice.all {
                 if size > 0 {
                     (0, size - 1)

@@ -32,7 +32,7 @@ pub fn intermediate_products(input: &str) -> types::IntermediateProducts {
         Ok(ast) => ast,
         Err(msg) => {products.errors.push(msg);return products;},
     };
-    println!("{:#?}",products.ast);
+    // println!("{:#?}",products.ast);
     // 1, モジュール定義の一覧を作成
     let modules_info = collect_modules(&products.ast);
     products.defined_non_func_module_list = modules_info.0;
