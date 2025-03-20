@@ -7,6 +7,7 @@ Neknaj Circuit Game is a simulation tool for designing and testing digital circu
 
 [Web Page](https://neknaj.com/circuitgame/README)  
 [Web Playground (CircuitGame Web Tool)](https://neknaj.github.io/circuitgame/)  
+[Tutorial](https://neknaj.github.io/circuitgame_tutorial/0.はじめに.html)  
 
 # Key Features
 - DSL for describing logic circuits
