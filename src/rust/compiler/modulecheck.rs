@@ -176,6 +176,11 @@ pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleTy
     // 依存関係のグラフを作成
     let mut dependency_graph: HashMap<String, HashSet<String>> = HashMap::new();
     let mut in_degree: HashMap<String, usize> = HashMap::new();
+    // 全モジュールを初期化
+    for module in modules {
+        dependency_graph.entry(module.name.clone()).or_insert(HashSet::new());
+        in_degree.entry(module.name.clone()).or_insert(0);
+    }
     // 依存関係の設定
     for dep in dependency_vec {
         dependency_graph
@@ -183,59 +188,89 @@ pub fn sort_dependency(dependency_vec: &Vec<NodeDepends>, modules: &Vec<ModuleTy
             .or_insert(HashSet::new())
             .insert(dep.depends.clone());
         *in_degree.entry(dep.depends.clone()).or_insert(0) += 1;
-        in_degree.entry(dep.node.clone()).or_insert(0);
     }
-    // 依存関係に現れないモジュールを認識
-    for module in modules {
-        if !dependency_graph.contains_key(&module.name) && !in_degree.contains_key(&module.name) {
-            warns.push(format!("Module has no dependency: {}", module.name));
-        }
-    }
-    // 被依存のないノード（依存されていないノード）を全てSに追加し、ソートして格納
+    // 被依存のないノードを見つけてSに追加
     let mut s: Vec<String> = in_degree
         .iter()
         .filter(|(_, &count)| count == 0)
         .map(|(node, _)| node.clone())
         .collect();
-    s.sort(); // 決定論的な順序にする
-
-    // Sが2つ以上あれば警告（ソート済みなので順序は一定）
+    s.sort();
+    // 複数のルートモジュールがある場合は警告
     if s.len() > 1 {
         warns.push(format!("Multiple modules are not used by other modules: {}", s.join(", ")));
     }
-    
-    let mut l = Vec::new(); // トポロジカル順にソートされたノード
+
+    let mut l = Vec::new();
+    let mut remaining: HashSet<_> = in_degree.keys().cloned().collect();
+
     // トポロジカルソートの実行
     while let Some(n) = s.pop() {
         l.push(n.clone());
+        remaining.remove(&n);
         if let Some(deps) = dependency_graph.get(&n) {
-            // 依存先をソートして処理することで順序を一定に
             let mut sorted_deps: Vec<_> = deps.iter().collect();
             sorted_deps.sort();
-            
             for m in sorted_deps {
-                // 辺を削除する
-                *in_degree.get_mut(m).unwrap() -= 1;
-
-                // mが依存関係を持たない場合、Sに追加
-                if in_degree[m] == 0 {
-                    // 適切な位置に挿入してソート順を維持
-                    match s.binary_search(m) {
-                        Ok(_) => unreachable!(),
-                        Err(pos) => s.insert(pos, m.clone()),
+                if let Some(count) = in_degree.get_mut(m) {
+                    *count -= 1;
+                    if *count == 0 {
+                        match s.binary_search(m) {
+                            Ok(_) => unreachable!(),
+                            Err(pos) => s.insert(pos, m.clone()),
+                        }
                     }
                 }
             }
         }
     }
-    
-    // 結果リストがモジュール数と一致しない場合、サイクルがある
-    if l.len() != modules.len() {
-        return Err((
-            vec!["Cycle detected in the graph, sorting cannot be completed.".to_string()],
-            warns,
-        ));
+
+    // 残っているノードからループを検出
+    if !remaining.is_empty() {
+        let mut cycles = Vec::new();
+        // 各未処理ノードからループを探索
+        for start in &remaining {
+            let mut visited = HashSet::new();
+            let mut path = Vec::new();
+
+            fn find_cycle(
+                current: &str,
+                graph: &HashMap<String, HashSet<String>>,
+                visited: &mut HashSet<String>,
+                path: &mut Vec<String>,
+                cycles: &mut Vec<Vec<String>>,
+            ) {
+                if path.contains(&current.to_string()) {
+                    // ループを検出
+                    let cycle_start = path.iter().position(|x| x == current).unwrap();
+                    let cycle = path[cycle_start..].to_vec();
+                    if !cycles.contains(&cycle) {
+                        cycles.push(cycle);
+                    }
+                    return;
+                }
+                if !visited.insert(current.to_string()) {
+                    return;
+                }
+                path.push(current.to_string());
+                if let Some(deps) = graph.get(current) {
+                    for dep in deps {
+                        find_cycle(dep, graph, visited, path, cycles);
+                    }
+                }
+                path.pop();
+            }
+            find_cycle(start, &dependency_graph, &mut visited, &mut path, &mut cycles);
+        }
+        // エラーメッセージを構築
+        let mut error_msg = String::from("Cycle detected in the dependency graph:\n");
+        for cycle in cycles {
+            error_msg.push_str(&format!("  {} -> {}\n",
+                cycle.join(" -> "),
+                cycle[0])); // ループを閉じる
+        }
+        return Err((vec![error_msg], warns));
     }
-    
+
     Ok((l, warns))
 }
