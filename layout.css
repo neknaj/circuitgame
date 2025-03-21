@@ -1,0 +1,57 @@
+.layout_root {
+    & > div {
+        height: calc(100% - 6px) !important;
+        width: calc(100% - 6px);
+        padding: 3px;
+    }
+    & .resizer_container {
+        display: flex;
+        height: 100%;
+        & .resizer_content {
+            display: block;
+            overflow: hidden;
+            padding: 0px;
+            border-radius: 5px;
+        }
+        & .resizer_splitter {
+            margin: 2px;
+            border-radius: 3px;
+            flex: none;
+            background-color: #4b4b4b;
+        }
+        & > .resizer_splitter:hover {
+            background-color: #696969;
+        }
+        &[data-type="v"] {
+            flex-direction: column;
+            & > .resizer_content {
+                min-height: 0px;
+                height: 100%;
+            }
+            & > .resizer_splitter {
+                height: 2px;
+                width: calc(100% - 4px);
+                cursor: row-resize;
+            }
+        }
+        &[data-type="h"] {
+            flex-direction: row;
+            & > .resizer_content {
+                min-width: 0px;
+                width: 100%;
+            }
+            & > .resizer_splitter {
+                width: 2px;
+                height: calc(100% - 4px);
+                cursor: col-resize;
+            }
+        }
+        & .layoutcontentarea {
+            height: 100%;
+            & .layoutcontent {
+                border: 1px solid rgb(65, 65, 65);
+                height: calc(100% - 2px);
+            }
+        }
+    }
+}

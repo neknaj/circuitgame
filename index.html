@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Circuit Game</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="index.js" type="module"></script>
+        <link rel="stylesheet" href="layout.css"></head>
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+        <link rel="icon" href="icon.png" type="image/png" sizes="1020x1020">
+        <link rel="apple-touch-icon" href="icon.png">
+        <meta name="msapplication-TileImage" content="icon.png">
+        <meta name="theme-color" content="#0a0a0b">
+        <meta name="msapplication-TileColor" content="#1f2020">
+    </head>
+    <body>
+        <div id="layoutroot"></div>
+    </body>
+</html>
+<style>
+    :root {
+        color-scheme: dark;
+        user-select: none;
+        font-family: serif;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+        height: 100dvh;
+        width: 100dvw;
+        overflow: hidden;
+        background-color: #0a0a0b;
+    }
+    #layoutroot {
+        height: 100%;
+        width: 100%;
+        & .layoutcontent {
+            overflow: auto;
+        }
+    }
+    .ace_editor {
+        height: calc(100% - 30px);
+    }
+    #editor_area, #transpile_area {
+        height: calc(100% - 5px);
+    }
+
+    #graph1 {
+        & .nodes .active rect {
+            fill: #045507 !important;
+        }
+        & .clusters {
+            & .nodeLabel {
+                color: #ffffff4f !important;
+            }
+            & #Gates rect, & #Inputs rect, & #Outputs rect {
+                fill: #000000 !important;
+            }
+            & rect {
+                fill: #262e391d !important;
+            }
+        }
+        & .edgePaths path {
+            stroke: #333633 !important;
+            stroke-width: 4px;
+            &.active {
+                stroke: #587156 !important;
+            }
+        }
+    }
+
+    #errMsgArea {
+        &>ul {
+            list-style: none;
+            padding: 0;
+        }
+        & li.error {
+            background-color: #ff001510;
+            padding-left: 10px;
+            border-left: 2px solid #ff001930;
+            margin: 5px;
+        }
+        & li.warn {
+            background-color: #ffc40010;
+            padding-left: 10px;
+            border-left: 2px solid #ffbf0030;
+            margin: 5px;
+        }
+    }
+
+    #moduleInfo {
+        & > table {
+            width: 100%;
+        }
+        & .dark {
+            color: #8e8e8e;
+        }
+    }
+
+    #testResult {
+        & td, & th {
+            padding: 0px 10px;
+            border-radius: 5px;
+        }
+        & td {
+            background-color: #98b2ff30;
+        }
+        & th {
+            background-color: #96adb930;
+        }
+        & .boolean {
+            font-weight: 800;
+            font-family: monospace;
+        }
+        & tr.failed {
+            background-color: #ff000030;
+        }
+        & details.accept > summary::after {
+            content: "accept";
+            margin-left: 5px;
+            color: #6b90ff;
+        }
+        & details.failed > summary::after {
+            content: "failed";
+            margin-left: 5px;
+            color: #ff6b6b;
+        }
+    }
+
+    #graph2 {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    #vm {
+        margin: 10px;
+    }
+    select {
+        font-size: 120%;
+        font-family: inherit;
+        padding: 5px;
+    }
+
+    label {
+        padding-left: 0.2em;
+    }
+
+    #vm {
+        & div {
+            height: fit-content;
+        }
+    }
+
+    #vm_ctrl_area {
+        &>div {
+            margin: 4px;
+            padding: 2px;
+        }
+    }
+
+    #graphicalIO > canvas {
+        width: 50%;
+        image-rendering: pixelated;
+    }
+
+    h1, h2, h3, h4 {
+        margin: 5px 0px;
+    }
+
+    .hide {
+        display: none;
+    }
+</style>
+<style>
+    .ace-monokai, .ace-ncg-dark {
+        background-color:rgb(0, 0, 0);
+        color: #f8f8f2;
+        & .ace_gutter {
+            background-color: #111;
+        }
+        & .ace_gutter-active-line {
+            background-color: #222;
+        }
+    }
+</style>
+<style>
+    ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: #cecece69;
+        border-radius: 1px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: #ffffff9c;
+        border-radius: 1px;
+    }
+    ::-webkit-scrollbar-track {
+        background-color: transparent;
+    }
+
+    input[type="checkbox"] {
+        display: none;
+    }
+
+    label {
+        display: inline-block;
+        padding: 0px 10px;
+        margin: 0;
+        cursor: pointer;
+        background-color: #000000;
+        border: 1px solid #878787;
+        border-radius: 5px;
+        transition: background-color 0.1s, border-color 0.1s;
+        user-select: none;
+        min-width: 30px;
+        height: fit-content;
+    }
+
+    input[type="checkbox"]:checked + label {
+        background-color: #045507;
+        color: white;
+    }
+
+    label:hover {
+        background-color: #272727;
+    }
+    input[type="checkbox"]:checked + label:hover {
+        background-color: #033c05;
+    }
+</style>
