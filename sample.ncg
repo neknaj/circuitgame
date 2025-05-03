@@ -1,0 +1,191 @@
+using nor:2->1;
+
+
+
+graphical hAddr: 2x2 {
+    0,0: i0 <- #21cf4c #303050;
+    1,0: i1 <- #21cf4c #303050;
+    0,1: o0 <- #21af4c #303030;
+    1,1: o1 <- #21af4c #303030;
+}
+
+//
+// 回路を定義する
+//
+
+
+// 定数
+
+module TRUE ()->(true) {
+    true: not <- false;
+    false: not <- true;
+}
+
+module FALSE ()->(false) {
+    true: not <- false;
+    false: not <- true;
+}
+
+func true (any)->(true) {
+    a: not <- any;
+    true: or <- any a;
+}
+
+func false (any)->(false) {
+    a: not <- any;
+    false: nor <- any a;
+}
+
+// 基本的なゲート
+
+func buf (x)->(x) {
+}
+
+func not (x)->(a) {
+    a: nor <- x x;
+}
+
+func and (x y)->(c) {
+    a: not <- x  ;
+    b: not <- y  ;
+    c: nor <- a b;
+}
+
+func or (x y)->(b) {
+    a: nor <- x y;
+    b: not <- a  ;
+}
+
+func nand (x y)->(c) {
+    a: not <- x  ;
+    b: not <- y  ;
+    c: or <- a b;
+}
+
+func xor (x y)->(e) {
+    a: not <- x  ;
+    b: not <- y  ;
+    c: nor <- a b;
+    d: nor <- x y;
+    e: nor <- c d;
+}
+
+// 加算器
+
+func hAddr (x y)->(c s) {
+    c: and <- x y;
+    s: xor <- x y;
+}
+
+func fAddr (x y z)->(c s2) {
+    c1 s1: hAddr <- x y  ;
+    c2 s2: hAddr <- s1 z ;
+    c    : or    <- c1 c2;
+}
+
+// ラッチ回路
+
+module sr_latch (s r)->(q nq) {
+    q: nor <- r nq;
+    nq: nor <- s q;
+}
+
+module d_latch (d clk)->(q nq) {
+    nd: not <- d;
+    s: nor <- nd clk;
+    r: nor <- d clk;
+    q nq: sr_latch <- s r;
+}
+
+// クロック回路
+
+module clock()->(a) {
+    a: buf b;
+    b: not a;
+}
+
+// インパルス
+
+module impulse()->(c) {
+    c: not a;
+    a: not b;
+    b: not a;
+}
+
+
+//
+// テストを定義する
+//
+
+test nor:2->1 {
+    t t -> f;
+    t f -> f;
+    f t -> f;
+    f f -> t;
+}
+
+test true:1->1 {
+    t -> t;
+    f -> t;
+}
+
+test false:1->1 {
+    f -> f;
+    f -> f;
+}
+
+test buf:1->1 {
+    t -> t;
+    f -> f;
+}
+
+test not:1->1 {
+    t -> f;
+    f -> t;
+}
+
+test and:2->1 {
+    t t -> t;
+    t f -> f;
+    f t -> f;
+    f f -> f;
+}
+
+test or:2->1 {
+    t t -> t;
+    t f -> t;
+    f t -> t;
+    f f -> f;
+}
+
+test nand:2->1 {
+    t t -> f;
+    t f -> t;
+    f t -> t;
+    f f -> t;
+}
+
+test xor:2->1 {
+    t t -> f;
+    t f -> t;
+    f t -> t;
+    f f -> f;
+}
+
+test hAddr:2->2 {
+    t t -> t f;
+    t f -> f t;
+    f t -> f t;
+    f f -> f f;
+}
+
+test fAddr:3->2 {
+    t t t -> t t;
+    f t t -> t f;
+    t f t -> t f;
+    f f t -> f t;
+    t t f -> t f;
+    f t f -> f t;
+    t f f -> f t;
+    f f f -> f f;
+}
