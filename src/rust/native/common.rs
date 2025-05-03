@@ -71,6 +71,7 @@ pub fn process_input(input_path: &str,output_modules_pattern: String, output_pat
             None => match &output {
                 name if name.ends_with(".bin")  => "ncgb",
                 name if name.ends_with(".ncgb") => "ncgb",
+                name if name.ends_with(".wat")   => "wat",
                 name if name.ends_with(".c")    => "c",
                 name if name.ends_with(".h")    => "cheader",
                 name if name.ends_with(".d.ts") => "dts",
@@ -177,6 +178,31 @@ pub fn process_input(input_path: &str,output_modules_pattern: String, output_pat
                     modules.push(deserialize_from_vec(&binary).unwrap());
                 }
                 match crate::transpiler::rs_transpiler::transpile(modules) {
+                    Ok(data) => {
+                        if let Err(e) = write_text_file(output.as_str(), &data) {
+                            println!("{}:{} {}","[error]".red(),"output".cyan(),e);
+                        } else {
+                            println!("{}:{} Output completed: {}","[info]".green(),"transpile".cyan(),output);
+                        }
+                    },
+                    Err(err) => {
+                        println!("{}:{} {}","[error]".red(),"transpile".cyan(),err);
+                    }
+                }
+            },
+            "wat" => {
+                let mut modules = Vec::new();
+                for module_name in &output_modules {
+                    let binary = match compiler::serialize(result.clone(), module_name.as_str()) {
+                        Ok(v) => v,
+                        Err(v) => {
+                            println!("{}:{} {}","[error]".red(),"serialize".cyan(),v);
+                            return Vec::new()
+                        }
+                    };
+                    modules.push(deserialize_from_vec(&binary).unwrap());
+                }
+                match crate::transpiler::wat_compiler::compile(modules) {
                     Ok(data) => {
                         if let Err(e) = write_text_file(output.as_str(), &data) {
                             println!("{}:{} {}","[error]".red(),"output".cyan(),e);
