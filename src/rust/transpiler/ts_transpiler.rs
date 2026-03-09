@@ -1,43 +1,78 @@
 use crate::vm::types::*;
 
-pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
+pub fn transpile(modules: Vec<Module>, header: bool) -> Result<String, String> {
     let mut transpiled_modules = Vec::new();
     for module in &modules {
-        if module.gates_symmetry.len()>0 {
-            return Err(format!("TS transpiler does not support symmetry module: {}",module.name));
+        if module.gates_symmetry.len() > 0 {
+            return Err(format!(
+                "TS transpiler does not support symmetry module: {}",
+                module.name
+            ));
         }
         if header {
-            return Err(format!("TS transpiler does not support non-func module: {}",module.name));
-        }
-        else {
+            return Err(format!(
+                "TS transpiler does not support non-func module: {}",
+                module.name
+            ));
+        } else {
             // func_moduleのみ static func で呼び出せる
             let func_module = if module.func {
                 let out_func_head = format!(
                     "static func({}): FixedLengthArray<boolean,{}>",
-                    (0..module.inputs as usize).map(|i| format!("b{}: boolean",i+module.gates_sequential.len())).collect::<Vec<String>>().join(", "),
+                    (0..module.inputs as usize)
+                        .map(|i| format!("b{}: boolean", i + module.gates_sequential.len()))
+                        .collect::<Vec<String>>()
+                        .join(", "),
                     module.outputs.len(),
                 );
-                let out_func_gates = module.gates_sequential.iter().enumerate().map(|(index,value)| format!("            const b{} = !( b{} || b{} );",index,value.0,value.1)).collect::<Vec<String>>().join("\n");
+                let out_func_gates = module
+                    .gates_sequential
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| {
+                        format!(
+                            "            const b{} = !( b{} || b{} );",
+                            index, value.0, value.1
+                        )
+                    })
+                    .collect::<Vec<String>>()
+                    .join("\n");
                 let out_func_return = format!(
                     "            return [ {} ];",
-                    module.outputs.iter().map(|value| format!("b{}",value)).collect::<Vec<String>>().join(", "),
+                    module
+                        .outputs
+                        .iter()
+                        .map(|value| format!("b{}", value))
+                        .collect::<Vec<String>>()
+                        .join(", "),
                 );
                 let out_func = format!(
                     "        {} {{\n{}\n{}\n        }}\n",
-                    out_func_head,
-                    out_func_gates,
-                    out_func_return,
+                    out_func_head, out_func_gates, out_func_return,
                 );
                 out_func
-            }
-            else {
+            } else {
                 "".to_string()
             };
             // 本体の関数を作る
-            let out_func_gates = module.gates_sequential.iter().enumerate().map(|(index,value)| format!("            this.b[{}] = !( this.b[{}] || this.b[{}] );",index,value.0,value.1)).collect::<Vec<String>>().join("\n");
+            let out_func_gates = module
+                .gates_sequential
+                .iter()
+                .enumerate()
+                .map(|(index, value)| {
+                    format!(
+                        "            this.b[{}] = !( this.b[{}] || this.b[{}] );",
+                        index, value.0, value.1
+                    )
+                })
+                .collect::<Vec<String>>()
+                .join("\n");
             let constructor_func = format!(
                 "        constructor () {{\n{}\n        }}",
-                format!("            this.b = new Array({}).fill(false);",module.gates_sequential.len()+module.inputs as usize),
+                format!(
+                    "            this.b = new Array({}).fill(false);",
+                    module.gates_sequential.len() + module.inputs as usize
+                ),
             );
             let next_func = format!(
                 "        next(): this {{\n{}\n{}\n        }}",
@@ -46,7 +81,12 @@ pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
             );
             let out_func_return = format!(
                 "            return [ {} ];",
-                module.outputs.iter().map(|value| format!("this.b[{}]",value)).collect::<Vec<String>>().join(", "),
+                module
+                    .outputs
+                    .iter()
+                    .map(|value| format!("this.b[{}]", value))
+                    .collect::<Vec<String>>()
+                    .join(", "),
             );
             let get_func = format!(
                 "        get outputs(): FixedLengthArray<boolean,{}> {{\n{}\n        }}",
@@ -55,15 +95,25 @@ pub fn transpile(modules: Vec<Module>,header: bool) -> Result<String,String> {
             );
             let input_func = format!(
                 "        inputs({}) {{\n{}\n        }}",
-                format!("i: FixedLengthArray<boolean,{}>",module.inputs),
-                (0..module.inputs as usize).map(|index| format!("            this.b[{}] = i[{}];",index+module.gates_sequential.len(),index)).collect::<Vec<String>>().join("\n"),
+                format!("i: FixedLengthArray<boolean,{}>", module.inputs),
+                (0..module.inputs as usize)
+                    .map(|index| format!(
+                        "            this.b[{}] = i[{}];",
+                        index + module.gates_sequential.len(),
+                        index
+                    ))
+                    .collect::<Vec<String>>()
+                    .join("\n"),
             );
             let module = format!(
                 "    \"{}\": class {{\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}    }}",
                 module.name,
                 format!("        private b: boolean[];"),
-                format!("        static inputsLen: number = {};",module.inputs),
-                format!("        static outputsLen: number = {};",module.outputs.len()),
+                format!("        static inputsLen: number = {};", module.inputs),
+                format!(
+                    "        static outputsLen: number = {};",
+                    module.outputs.len()
+                ),
                 constructor_func,
                 input_func,
                 next_func,

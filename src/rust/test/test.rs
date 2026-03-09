@@ -3,33 +3,56 @@ use super::types::*;
 pub fn test_gates(
     product: &crate::compiler::types::IntermediateProducts,
     module_type_list: &Vec<crate::compiler::types::ModuleType>,
-)-> ResultwithWarn<std::collections::HashMap<String,Vec<TestPattern>>> {
+) -> ResultwithWarn<std::collections::HashMap<String, Vec<TestPattern>>> {
     let mut errors = Vec::new();
     let mut warns = Vec::new();
-    let mut result_map = std::collections::HashMap::<String,Vec<TestPattern>>::new();
+    let mut result_map = std::collections::HashMap::<String, Vec<TestPattern>>::new();
     // let mut errors = Vec::new();
     for component in &product.ast.components {
         match component {
-            crate::compiler::types::Component::Test(test)=>{ // Testのみ処理
+            crate::compiler::types::Component::Test(test) => {
+                // Testのみ処理
                 // moduleの型を取得
-                let module_type = match module_type_list.iter().find(|m| m.name==test.name).map(|m| &m.mtype) {
+                let module_type = match module_type_list
+                    .iter()
+                    .find(|m| m.name == test.name)
+                    .map(|m| &m.mtype)
+                {
                     Some(mtype) => mtype.clone(),
-                    None => { break; },
+                    None => {
+                        break;
+                    }
                 };
                 // patternがtypeに合致するかを確認
                 for pattern in &test.patterns {
-                    if pattern.inputs.len()!=module_type.input_count||pattern.outputs.len()!=module_type.output_count {
-                        errors.push(format!("Used module with unmatched type: {} expected {}->{} but got {}->{}",&test.name,module_type.input_count,module_type.output_count,pattern.inputs.len(),pattern.outputs.len()));
+                    if pattern.inputs.len() != module_type.input_count
+                        || pattern.outputs.len() != module_type.output_count
+                    {
+                        errors.push(format!(
+                            "Used module with unmatched type: {} expected {}->{} but got {}->{}",
+                            &test.name,
+                            module_type.input_count,
+                            module_type.output_count,
+                            pattern.inputs.len(),
+                            pattern.outputs.len()
+                        ));
                     }
                 }
                 // vmに入れて出力を確認する
-                let binary = match crate::compiler::serialize(product.clone(), &test.name.as_str()) {
-                    Ok(v)=>v,
-                    Err(v)=>{ errors.push(v);break; }
+                let binary = match crate::compiler::serialize(product.clone(), &test.name.as_str())
+                {
+                    Ok(v) => v,
+                    Err(v) => {
+                        errors.push(v);
+                        break;
+                    }
                 };
                 let mut vm = match crate::vm::types::Module::new(binary) {
                     Ok(v) => v,
-                    Err(v)=>{ errors.push(v);break; }
+                    Err(v) => {
+                        errors.push(v);
+                        break;
+                    }
                 };
                 let mut test_result = Vec::new();
                 // それぞれのpatternを試す
@@ -38,14 +61,17 @@ pub fn test_gates(
                     let mut input_index = 0;
                     for input in &pattern.inputs {
                         let _ = vm.set(input_index, *input);
-                        input_index+=1;
+                        input_index += 1;
                     }
                     // vmを1ステップ進める
                     let _ = vm.next(1);
                     // 出力を取得する
                     let output = match vm.get_output() {
                         Ok(v) => v,
-                        Err(v)=>{ errors.push(v);break; }
+                        Err(v) => {
+                            errors.push(v);
+                            break;
+                        }
                     };
                     // 出力の一致を確認する
                     let mut test_failed = false;
@@ -53,19 +79,28 @@ pub fn test_gates(
                     for out in &output {
                         let expect = match pattern.outputs.get(out_index) {
                             Some(v) => *v,
-                            None => { errors.push(format!("Index out of bounds"));break; }
+                            None => {
+                                errors.push(format!("Index out of bounds"));
+                                break;
+                            }
                         };
-                        if *out!=expect {
+                        if *out != expect {
                             test_failed = true;
                         }
-                        out_index+=1;
+                        out_index += 1;
                     }
                     //
                     if test_failed {
-                        warns.push(format!("Test failed: module {} input {:?}, expected {:?} but got {:?}",&test.name,pattern.inputs.clone(),pattern.outputs.clone(),output.clone()));
+                        warns.push(format!(
+                            "Test failed: module {} input {:?}, expected {:?} but got {:?}",
+                            &test.name,
+                            pattern.inputs.clone(),
+                            pattern.outputs.clone(),
+                            output.clone()
+                        ));
                     }
                     let test_pattern = TestPattern {
-                        input : pattern.inputs.clone(),
+                        input: pattern.inputs.clone(),
                         expect: pattern.outputs.clone(),
                         output: output.clone(),
                         accept: !test_failed,
@@ -73,12 +108,12 @@ pub fn test_gates(
                     test_result.push(test_pattern);
                 }
                 result_map.insert(test.name.clone(), test_result);
-            },
+            }
             _ => {} // Testでなければ何もしない
         }
     }
-    if errors.len()>0 {
-        return Err((errors,warns));
+    if errors.len() > 0 {
+        return Err((errors, warns));
     }
-    Ok((result_map,warns))
+    Ok((result_map, warns))
 }
