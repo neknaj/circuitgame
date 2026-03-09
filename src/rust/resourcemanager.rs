@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub struct ResourceManager<T> {
     resources: Vec<T>,
-    id_map: HashMap<u32, usize>, // 外部ID -> 内部インデックス
+    id_map: HashMap<u32, usize>,      // 外部ID -> 内部インデックス
     reverse_map: HashMap<usize, u32>, // 内部インデックス -> 外部ID
 }
 
@@ -36,7 +36,9 @@ impl<T> ResourceManager<T> {
     }
 
     pub fn get_resource(&mut self, id: u32) -> Option<&mut T> {
-        self.id_map.get(&id).and_then(|&index| self.resources.get_mut(index))
+        self.id_map
+            .get(&id)
+            .and_then(|&index| self.resources.get_mut(index))
     }
 
     pub fn remove_resource(&mut self, id: u32) -> Option<T> {

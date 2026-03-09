@@ -42,10 +42,7 @@ pub fn transpile(modules: Vec<Module>) -> Result<String, String> {
                     .collect::<Vec<String>>()
                     .join(", ")
             );
-            format!(
-                "{}\n{}\n{}\n        }}",
-                func_head, func_gates, func_return
-            )
+            format!("{}\n{}\n{}\n        }}", func_head, func_gates, func_return)
         } else {
             "".to_string()
         };

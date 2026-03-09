@@ -14,7 +14,7 @@ pub fn compile(modules: Vec<Module>) -> Result<String, String> {
     for module in &modules {
         let state_len = (module.gates_sequential.len() + module.inputs as usize) as u32;
         let offset = current_offset;
-        current_offset += state_len * 4;  // each bool as 4 bytes (i32.store)
+        current_offset += state_len * 4; // each bool as 4 bytes (i32.store)
 
         // Function: inputs_<name>
         wat.push_str(&format!(
@@ -49,10 +49,7 @@ pub fn compile(modules: Vec<Module>) -> Result<String, String> {
             let addr = offset + idx as u32 * 4;
             let addr_a = offset + a * 4;
             let addr_b = offset + b * 4;
-            wat.push_str(&format!(
-                "        ;; b{} = !(b{} || b{})\n",
-                idx, a, b
-            ));
+            wat.push_str(&format!("        ;; b{} = !(b{} || b{})\n", idx, a, b));
             wat.push_str(&format!(
                 "        (i32.store\n            (i32.const {})\n            (i32.eqz (i32.or\n                (i32.load (i32.const {}))\n                (i32.load (i32.const {}))\n            ))\n        )\n",
                 addr, addr_a, addr_b
@@ -62,10 +59,7 @@ pub fn compile(modules: Vec<Module>) -> Result<String, String> {
         wat.push_str("    )\n\n");
 
         // Function: get_outputs_<name>
-        wat.push_str(&format!(
-            "    ;; Read outputs for `{}`\n",
-            module.name
-        ));
+        wat.push_str(&format!("    ;; Read outputs for `{}`\n", module.name));
         // Open func with results
         wat.push_str(&format!("    (func $get_outputs_{} (result", module.name));
         for _ in 0..module.outputs.len() {

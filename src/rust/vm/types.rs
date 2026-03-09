@@ -1,4 +1,4 @@
-pub type NORGate = (u32,u32);
+pub type NORGate = (u32, u32);
 
 #[derive(Clone)]
 pub struct Module {

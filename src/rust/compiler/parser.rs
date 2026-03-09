@@ -7,12 +7,11 @@ use nom::{
     character::complete::{char, digit1, multispace0, multispace1, not_line_ending},
     combinator::{eof, map, map_res, opt, recognize, value},
     multi::{many0, separated_list0},
-    sequence::{delimited, terminated, tuple, preceded},
+    sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
 
 // Parser implementations
-
 
 fn identifier(input: &str) -> IResult<&str, String> {
     map(
@@ -61,36 +60,19 @@ fn file_path_2(input: &str) -> IResult<&str, String> {
 }
 
 fn file_path(input: &str) -> IResult<&str, String> {
-    alt((
-        file_path_1,
-        file_path_2,
-    ))(input)
+    alt((file_path_1, file_path_2))(input)
 }
 
 fn right_arrow(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag("->"),
-        tag("=>"),
-        tag(">"),
-        tag("~>"),
-    ))(input)
+    alt((tag("->"), tag("=>"), tag(">"), tag("~>")))(input)
 }
 
 fn left_arrow(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag("<-"),
-        tag("<="),
-        tag("<"),
-        tag("<~"),
-    ))(input)
+    alt((tag("<-"), tag("<="), tag("<"), tag("<~")))(input)
 }
 
 fn include_keyword(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag("include"),
-        tag("Include"),
-        tag("INCLUDE"),
-    ))(input)
+    alt((tag("include"), tag("Include"), tag("INCLUDE")))(input)
 }
 
 fn using_keyword(input: &str) -> IResult<&str, &str> {
@@ -127,19 +109,11 @@ fn func_keyword(input: &str) -> IResult<&str, &str> {
 }
 
 fn graphical_keyword(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag("graphical"),
-        tag("Graphical"),
-        tag("GRAPHICAL"),
-    ))(input)
+    alt((tag("graphical"), tag("Graphical"), tag("GRAPHICAL")))(input)
 }
 
 fn test_keyword(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag("test"),
-        tag("Test"),
-        tag("TEST"),
-    ))(input)
+    alt((tag("test"), tag("Test"), tag("TEST")))(input)
 }
 
 fn number(input: &str) -> IResult<&str, u32> {
@@ -160,38 +134,23 @@ fn mtype(input: &str) -> IResult<&str, MType> {
     )(input)
 }
 
-
 fn line_comment_start(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag("//"),
-        tag("#"),
-    ))(input)
+    alt((tag("//"), tag("#")))(input)
 }
 
 fn line_comment(input: &str) -> IResult<&str, &str> {
-    recognize(
-        tuple((
-            line_comment_start,
-            not_line_ending,
-            alt((
-                tag("\n"),
-                tag("\r\n"),
-                eof
-            ))
-        ))
-    )(input)
+    recognize(tuple((
+        line_comment_start,
+        not_line_ending,
+        alt((tag("\n"), tag("\r\n"), eof)),
+    )))(input)
 }
 
 /// コメント有りの区切り
 fn separator(input: &str) -> IResult<&str, ()> {
     map(
-        many0(
-            alt((
-                map(multispace1, |_| ()),
-                map(line_comment, |_| ())
-            ))
-        ),
-        |_| ()
+        many0(alt((map(multispace1, |_| ()), map(line_comment, |_| ())))),
+        |_| (),
     )(input)
 }
 
@@ -199,14 +158,7 @@ fn separator(input: &str) -> IResult<&str, ()> {
 fn value_separator(input: &str) -> IResult<&str, ()> {
     alt((
         map(multispace1, |_| ()),
-        map(
-            tuple((
-                multispace0,
-                char(','),
-                multispace0
-            )),
-            |_| ()
-        )
+        map(tuple((multispace0, char(','), multispace0)), |_| ()),
     ))(input)
 }
 
@@ -245,12 +197,9 @@ fn include(input: &str) -> IResult<&str, Include> {
             file_path,
             char(';'),
         )),
-        |(_,_,_,path,_)| Include {
-            path,
-        },
+        |(_, _, _, path, _)| Include { path },
     )(input)
 }
-
 
 fn id_list_output(input: &str) -> IResult<&str, Vec<PreOutputs>> {
     separated_list0(value_separator, array_declaration)(input)
@@ -262,27 +211,29 @@ fn id_list_input(input: &str) -> IResult<&str, Vec<PreInputs>> {
 fn io_list_input(input: &str) -> IResult<&str, Vec<PreOutputs>> {
     delimited(
         char('('),
-        delimited(multispace0, separated_list0(value_separator, array_declaration), multispace0),
-        char(')')
+        delimited(
+            multispace0,
+            separated_list0(value_separator, array_declaration),
+            multispace0,
+        ),
+        char(')'),
     )(input)
 }
 
 fn io_list_output(input: &str) -> IResult<&str, Vec<PreInputs>> {
     delimited(
         char('('),
-        delimited(multispace0, separated_list0(value_separator, array_slice), multispace0),
-        char(')')
+        delimited(
+            multispace0,
+            separated_list0(value_separator, array_slice),
+            multispace0,
+        ),
+        char(')'),
     )(input)
 }
 
 fn gate_separator(input: &str) -> IResult<&str, &str> {
-    alt((
-        tag(":"),
-        tag("="),
-        tag(":="),
-        tag("::="),
-        left_arrow,
-    ))(input)
+    alt((tag(":"), tag("="), tag(":="), tag("::="), left_arrow))(input)
 }
 
 // 配列の宣言をパースします：
@@ -292,7 +243,7 @@ fn array_declaration(input: &str) -> IResult<&str, PreOutputs> {
     let (input, arr_name) = identifier(input)?;
     let (input, arr_size_) = opt(delimited(char('('), natural_number, char(')')))(input)?;
     let arr_size = arr_size_.unwrap_or_else(|| 1);
-    Ok((input,PreOutputs{arr_name,arr_size}))
+    Ok((input, PreOutputs { arr_name, arr_size }))
     // Ok((input,(0..size).map(|i| format!("{}:{}",arr_name,i)).collect()))
 }
 
@@ -357,10 +308,13 @@ fn array_slice(input: &str) -> IResult<&str, PreInputs> {
         lower_inclusive: true,
         upper_inclusive: true,
     });
-    Ok((input, PreInputs {
-        arr_name: id_str,
-        arr_slice: slice,
-    }))
+    Ok((
+        input,
+        PreInputs {
+            arr_name: id_str,
+            arr_slice: slice,
+        },
+    ))
 }
 
 fn gate(input: &str) -> IResult<&str, PreGate> {
@@ -404,18 +358,11 @@ fn module(input: &str) -> IResult<&str, Module> {
                     many0(delimited(separator, gate, separator)),
                     char('}'),
                 ),
-                map(
-                    tuple((
-                        char('{'),
-                        separator,
-                        char('}'),
-                    )),
-                    |_| Vec::new()
-                )
+                map(tuple((char('{'), separator, char('}'))), |_| Vec::new()),
             )),
         )),
         |(_, _, name, _, inputs_pre, _, _, _, outputs_pre, _, gates_pre)| {
-            let (inputs,outputs,gates) = convert_pre_gates(inputs_pre,outputs_pre,gates_pre);
+            let (inputs, outputs, gates) = convert_pre_gates(inputs_pre, outputs_pre, gates_pre);
             Module {
                 func: false,
                 name,
@@ -446,18 +393,11 @@ fn func_module(input: &str) -> IResult<&str, Module> {
                     many0(delimited(separator, gate, separator)),
                     char('}'),
                 ),
-                map(
-                    tuple((
-                        char('{'),
-                        separator,
-                        char('}'),
-                    )),
-                    |_| Vec::new()
-                )
+                map(tuple((char('{'), separator, char('}'))), |_| Vec::new()),
             )),
         )),
         |(_, _, name, _, inputs_pre, _, _, _, outputs_pre, _, gates_pre)| {
-            let (inputs,outputs,gates) = convert_pre_gates(inputs_pre,outputs_pre,gates_pre);
+            let (inputs, outputs, gates) = convert_pre_gates(inputs_pre, outputs_pre, gates_pre);
             Module {
                 func: true,
                 name,
@@ -489,10 +429,7 @@ fn false_value(input: &str) -> IResult<&str, bool> {
 }
 
 fn bool_value(input: &str) -> IResult<&str, bool> {
-    alt((
-        true_value,
-        false_value,
-    ))(input)
+    alt((true_value, false_value))(input)
 }
 
 fn bool_list(input: &str) -> IResult<&str, Vec<bool>> {
@@ -531,14 +468,7 @@ fn test(input: &str) -> IResult<&str, Test> {
                     many0(delimited(separator, test_pattern, separator)),
                     char('}'),
                 ),
-                map(
-                    tuple((
-                        char('{'),
-                        separator,
-                        char('}'),
-                    )),
-                    |_| Vec::new()
-                )
+                map(tuple((char('{'), separator, char('}'))), |_| Vec::new()),
             )),
         )),
         |(_, _, name, _, _, _, type_sig, _, patterns)| Test {
@@ -550,35 +480,24 @@ fn test(input: &str) -> IResult<&str, Test> {
 }
 
 fn img_size_auto(input: &str) -> IResult<&str, ImgSize> {
-    map(
-        tag("auto"),
-        |_| ImgSize::Auto(()),
-    )(input)
+    map(tag("auto"), |_| ImgSize::Auto(()))(input)
 }
 
 fn img_size_number(input: &str) -> IResult<&str, ImgSize> {
-    map(
-        tuple((
-            number,
-            char('x'),
-            number,
-        )),
-        |(width,_,height)| ImgSize::Size {
-            width,
-            height,
-        },
-    )(input)
+    map(tuple((number, char('x'), number)), |(width, _, height)| {
+        ImgSize::Size { width, height }
+    })(input)
 }
 
 /// for img_color parser
 fn hex_to_u8(a: char, b: char) -> Option<u8> {
     match (a.to_digit(16), b.to_digit(16)) {
         (Some(x), Some(y)) if x <= 15 && y <= 15 => Some(TryFrom::try_from(x * 16 + y).unwrap()),
-        _ => None
+        _ => None,
     }
 }
 
-fn img_color(input: &str) -> IResult<&str, (u8,u8,u8)> {
+fn img_color(input: &str) -> IResult<&str, (u8, u8, u8)> {
     map(
         tuple((
             char('#'),
@@ -589,7 +508,13 @@ fn img_color(input: &str) -> IResult<&str, (u8,u8,u8)> {
             hex_digit,
             hex_digit,
         )),
-        |(_,a,b,c,d,e,f)| (hex_to_u8(a,b).unwrap(),hex_to_u8(c,d).unwrap(),hex_to_u8(e,f).unwrap())
+        |(_, a, b, c, d, e, f)| {
+            (
+                hex_to_u8(a, b).unwrap(),
+                hex_to_u8(c, d).unwrap(),
+                hex_to_u8(e, f).unwrap(),
+            )
+        },
     )(input)
 }
 
@@ -602,7 +527,7 @@ fn graphical(input: &str) -> IResult<&str, Graphical> {
             multispace0,
             char(':'),
             multispace0,
-            alt((img_size_auto,img_size_number)),
+            alt((img_size_auto, img_size_number)),
             multispace0,
             alt((
                 delimited(
@@ -610,40 +535,25 @@ fn graphical(input: &str) -> IResult<&str, Graphical> {
                     many0(delimited(separator, pixel, separator)),
                     char('}'),
                 ),
-                map(
-                    tuple((
-                        char('{'),
-                        separator,
-                        char('}'),
-                    )),
-                    |_| Vec::new()
-                )
+                map(tuple((char('{'), separator, char('}'))), |_| Vec::new()),
             )),
         )),
-        |(_, _,name,_,_,_,size, _, pixels)| Graphical {
-            name,
-            size,
-            pixels,
-        },
+        |(_, _, name, _, _, _, size, _, pixels)| Graphical { name, size, pixels },
     )(input)
 }
 
 fn img_io_name(input: &str) -> IResult<&str, IoIndex> {
     map(
-        tuple((
-            alt((char('i'),char('o'))),
-            number,
-        )),
-        |(io_type,index)| IoIndex {
+        tuple((alt((char('i'), char('o'))), number)),
+        |(io_type, index)| IoIndex {
             io_type: match io_type {
                 'i' => "input".to_string(),
                 _ => "output".to_string(),
             },
             index,
-        }
+        },
     )(input)
 }
-
 
 fn pixel(input: &str) -> IResult<&str, Pixel> {
     map(
@@ -662,17 +572,16 @@ fn pixel(input: &str) -> IResult<&str, Pixel> {
             img_color,
             char(';'),
         )),
-        |(x,_,y,_,_,_,io_index,_,_,color_on,_,color_off,_)| Pixel {
-            coord: (x,y),
+        |(x, _, y, _, _, _, io_index, _, _, color_on, _, color_off, _)| Pixel {
+            coord: (x, y),
             io_index,
             color: PixelColor {
                 on: color_on,
                 off: color_off,
-            }
+            },
         },
     )(input)
 }
-
 
 fn component(input: &str) -> IResult<&str, Component> {
     alt((
@@ -696,7 +605,6 @@ fn file(input: &str) -> IResult<&str, File> {
     )(input)
 }
 
-
 pub fn parser(input: &str) -> Result<File, String> {
     match file(input) {
         Ok(("", ast)) => Ok(ast),
@@ -704,7 +612,10 @@ pub fn parser(input: &str) -> Result<File, String> {
             // Find the context of the error
             let error_pos = input.len() - remainder.len();
             let start = input[..error_pos].rfind('\n').map(|i| i + 1).unwrap_or(0);
-            let end = remainder.find('\n').map(|i| error_pos + i).unwrap_or(input.len());
+            let end = remainder
+                .find('\n')
+                .map(|i| error_pos + i)
+                .unwrap_or(input.len());
             let line = input[start..end].trim();
             // Calculate line number
             let line_number = input[..error_pos].matches('\n').count() + 1;
@@ -713,13 +624,15 @@ pub fn parser(input: &str) -> Result<File, String> {
             error.push_str(&format!("{}\n", line));
             // Add pointer to the error position
             error.push_str(&format!("{}^\n", " ".repeat(error_pos - start)));
-            error.push_str("Unexpected content found. The parser was unable to continue from this point.\n");
+            error.push_str(
+                "Unexpected content found. The parser was unable to continue from this point.\n",
+            );
             error.push_str("Common causes:\n");
             error.push_str("- Missing semicolon at the end of a statement\n");
             error.push_str("- Invalid syntax or typo in module/gate definition\n");
             error.push_str("- Unmatched braces or parentheses\n");
             Err(error)
-        },
+        }
         Err(e) => {
             let error_desc = match e {
                 nom::Err::Error(e) | nom::Err::Failure(e) => {
@@ -729,16 +642,19 @@ pub fn parser(input: &str) -> Result<File, String> {
                     let end = e.input.find('\n').map(|i| pos + i).unwrap_or(input.len());
                     let line = input[start..end].trim();
                     let line_number = input[..pos].matches('\n').count() + 1;
-                    format!("Syntax error at line {}:\n{}\n{}^\nInvalid syntax found here.\n",
+                    format!(
+                        "Syntax error at line {}:\n{}\n{}^\nInvalid syntax found here.\n",
                         line_number,
                         line,
                         " ".repeat(pos - start)
                     )
-                },
-                nom::Err::Incomplete(_) => "Incomplete input: the file appears to be truncated.".to_string(),
+                }
+                nom::Err::Incomplete(_) => {
+                    "Incomplete input: the file appears to be truncated.".to_string()
+                }
             };
             Err(error_desc)
-        },
+        }
     }
 }
 
@@ -769,7 +685,9 @@ pub fn convert_pre_gates(
     for gate in &gates_pre {
         for po in &gate.outputs {
             // Only insert if not already present.
-            output_sizes.entry(po.arr_name.clone()).or_insert(po.arr_size);
+            output_sizes
+                .entry(po.arr_name.clone())
+                .or_insert(po.arr_size);
         }
     }
 
@@ -816,8 +734,16 @@ pub fn convert_pre_gates(
                             (0, 0)
                         }
                     } else {
-                        let lower = if slice.lower_inclusive { slice.start } else { slice.start + 1 };
-                        let upper = if slice.upper_inclusive { slice.end } else { slice.end - 1 };
+                        let lower = if slice.lower_inclusive {
+                            slice.start
+                        } else {
+                            slice.start + 1
+                        };
+                        let upper = if slice.upper_inclusive {
+                            slice.end
+                        } else {
+                            slice.end - 1
+                        };
                         (lower, upper)
                     };
                     if lower <= upper {
@@ -855,8 +781,16 @@ pub fn convert_pre_gates(
                     (0, 0)
                 }
             } else {
-                let lower = if slice.lower_inclusive { slice.start } else { slice.start + 1 };
-                let upper = if slice.upper_inclusive { slice.end } else { slice.end - 1 };
+                let lower = if slice.lower_inclusive {
+                    slice.start
+                } else {
+                    slice.start + 1
+                };
+                let upper = if slice.upper_inclusive {
+                    slice.end
+                } else {
+                    slice.end - 1
+                };
                 (lower, upper)
             };
             if lower <= upper {

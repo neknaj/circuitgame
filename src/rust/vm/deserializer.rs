@@ -22,7 +22,9 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     let func = match data[index] {
         0 => false,
         1 => true,
-        _ => {return Err("Unsupported func module flag".to_string());},
+        _ => {
+            return Err("Unsupported func module flag".to_string());
+        }
     };
     index += 1;
 
@@ -36,7 +38,11 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
     if index + name_len > data.len() {
         return Err("Data is too short to contain name".to_string());
     }
-    let name = data[index..index + name_len].to_vec().into_iter().filter_map(std::char::from_u32).collect();
+    let name = data[index..index + name_len]
+        .to_vec()
+        .into_iter()
+        .filter_map(std::char::from_u32)
+        .collect();
     index += name_len;
 
     // Deserialize inputs
@@ -92,7 +98,10 @@ pub fn deserialize_from_vec(data: &[u32]) -> Result<Module, String> {
 
     // init cond
     let mut cond = Vec::new();
-    cond.resize(gates_sequential.len()+gates_symmetry.len()+inputs as usize, false);
+    cond.resize(
+        gates_sequential.len() + gates_symmetry.len() + inputs as usize,
+        false,
+    );
 
     Ok(Module {
         func,

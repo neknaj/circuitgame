@@ -4,7 +4,7 @@ use serde::Serialize;
 /// `Ok(( result, warn[] ))` `Err(( error[], warn[] ))`
 pub type Warns = Vec<String>;
 pub type Errs = Vec<String>;
-pub type ResultwithWarn<T> = Result<(T,Warns),(Errs,Warns)>;
+pub type ResultwithWarn<T> = Result<(T, Warns), (Errs, Warns)>;
 
 // パーサー系
 
@@ -42,11 +42,10 @@ pub struct Module {
     pub gates: Vec<Gate>,
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type")]
 pub enum ImgSize {
-    Size {width: u32, height: u32},
+    Size { width: u32, height: u32 },
     Auto(()),
 }
 
@@ -70,7 +69,6 @@ pub struct Gate {
     pub module_name: String,
     pub inputs: Vec<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PreOutputs {
@@ -103,15 +101,15 @@ pub struct PreGate {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Pixel {
-    pub coord: (u32,u32),
+    pub coord: (u32, u32),
     pub io_index: IoIndex,
     pub color: PixelColor,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PixelColor {
-    pub on: (u8,u8,u8),
-    pub off: (u8,u8,u8),
+    pub on: (u8, u8, u8),
+    pub off: (u8, u8, u8),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -149,11 +147,11 @@ pub struct NodeDepends {
 #[derive(Debug, Clone, Serialize)]
 pub enum CompiledGateInput {
     NorGate(u32), // gateのn番目
-    Input(u32), // inputのn番目
+    Input(u32),   // inputのn番目
 }
 
 // 入力のgateのインデックスを保存
-pub type CompiledGate = (CompiledGateInput,CompiledGateInput);
+pub type CompiledGate = (CompiledGateInput, CompiledGateInput);
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CompiledModule {
@@ -169,14 +167,14 @@ pub struct CompiledModule {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct IntermediateProducts {
-    pub source                      : String,
-    pub warns                       : Vec<String>,
-    pub errors                      : Vec<String>,
-    pub ast                         : File,
+    pub source: String,
+    pub warns: Vec<String>,
+    pub errors: Vec<String>,
+    pub ast: File,
     pub defined_non_func_module_list: Vec<String>,
-    pub defined_func_module_list    : Vec<String>,
-    pub module_type_list            : Vec<ModuleType>,
-    pub module_dependency           : Vec<NodeDepends>,
-    pub module_dependency_sorted    : Vec<String>,
-    pub expanded_modules            : std::collections::HashMap<String,CompiledModule>,
+    pub defined_func_module_list: Vec<String>,
+    pub module_type_list: Vec<ModuleType>,
+    pub module_dependency: Vec<NodeDepends>,
+    pub module_dependency_sorted: Vec<String>,
+    pub expanded_modules: std::collections::HashMap<String, CompiledModule>,
 }
