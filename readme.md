@@ -1,6 +1,5 @@
 # Neknaj Circuit Game
 
-![image](https://img.shields.io/badge/-TypeScript-103040.svg?logo=typescript&style=popout)
 ![image](https://img.shields.io/badge/-Rust-403540.svg?logo=rust&style=popout)
 
 Neknaj Circuit Game is a simulation tool for designing and testing digital circuits. It allows users to define modules, gates, and tests for their circuits and provides tools for compiling and testing these designs.
@@ -13,6 +12,7 @@ Neknaj Circuit Game is a simulation tool for designing and testing digital circu
 - DSL for describing logic circuits
 - Transpile to TypeScript
 - Development using both CLI and Web
+- Web UI implemented in Rust with `egui`
 
 # Document
 [Detailed explanation of the language specification for LLM](https://raw.githubusercontent.com/neknaj/circuitgame/refs/heads/main/spec/explanation4llm.md), [not raw](https://github.com/neknaj/circuitgame/blob/main/spec/explanation4llm.md)
@@ -24,7 +24,8 @@ To install the project, follow these steps:
 ## Software required
 - git
 - rust, cargo
-- node, npm
+- `wasm32-unknown-unknown` target
+- `wasm-bindgen-cli`
 
 ## Build CircuitGame CLI Tool
 1. Clone  
@@ -47,14 +48,22 @@ To install the project, follow these steps:
     cd circuitgame
     ```
 
-2. Install dependencies:
+2. Install Rust web dependencies:
     ```sh
-    npm install
+    rustup target add wasm32-unknown-unknown
+    cargo install wasm-bindgen-cli
     ```
 
 3. Build the project:
     ```sh
-    node build.js
+    ./build_web.sh
+    ```
+
+The generated site is written entirely in Rust UI code and emitted into `dist/`.
+
+4. Serve `dist/` with any static file server:
+    ```sh
+    python3 -m http.server 8080 --directory dist
     ```
 
 ## Usage
@@ -68,6 +77,15 @@ cargo run -- -i spec/sample.ncg -s 8080
 ```
 
 Click the link displayed in the console to view the results in your web browser.  
+
+You can also export the circuit graph directly from the CLI as a PNG at any resolution.
+
+```sh
+cargo run -- -i spec/sample.ncg --module d_latch --graphPng /tmp/d_latch.png --graphWidth 1920 --graphHeight 1080
+# or: ncg -i spec/sample.ncg --module d_latch --graphPng /tmp/d_latch.png --graphWidth 1920 --graphHeight 1080
+```
+
+`--module` is recommended for graph export. If it is omitted, CircuitGame picks the first available compiled module.
 
 ## Notation
 
